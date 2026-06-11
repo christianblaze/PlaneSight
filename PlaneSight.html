@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PlaneSight: Steganography Tool</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, sans-serif; background: #0f0f13; color: #e2e2e8; min-height: 100vh; padding: 2rem; }
+  h1 { font-size: 1.5rem; font-weight: 500; color: #fff; margin-bottom: 0.25rem; }
+  .subtitle { color: #888; font-size: 0.875rem; margin-bottom: 2rem; }
+  .tabs { display: flex; gap: 0; border-bottom: 1px solid #2a2a35; margin-bottom: 2rem; }
+  .tab { padding: 0.625rem 1.5rem; font-size: 0.875rem; cursor: pointer; border: none; background: none; color: #888; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color 0.15s; }
+  .tab.active { color: #a78bfa; border-bottom-color: #a78bfa; }
+  .tab:hover:not(.active) { color: #ccc; }
+  .panel { display: none; } .panel.active { display: block; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+  @media(max-width: 700px) { .grid { grid-template-columns: 1fr; } }
+  .card { background: #18181f; border: 1px solid #2a2a35; border-radius: 12px; padding: 1.25rem; }
+  label { display: block; font-size: 0.8125rem; color: #888; margin-bottom: 0.5rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; }
+  .drop-zone { border: 1.5px dashed #3a3a50; border-radius: 8px; padding: 2.5rem 1rem; text-align: center; cursor: pointer; transition: border-color 0.15s, background 0.15s; color: #555; font-size: 0.875rem; position: relative; }
+  .drop-zone:hover, .drop-zone.drag-over { border-color: #a78bfa; background: rgba(167,139,250,0.05); color: #a78bfa; }
+  .drop-zone input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+  .drop-zone .icon { font-size: 2rem; margin-bottom: 0.5rem; }
+  textarea { width: 100%; background: #0f0f13; border: 1px solid #2a2a35; border-radius: 8px; color: #e2e2e8; font-size: 0.875rem; padding: 0.75rem; resize: vertical; min-height: 100px; font-family: inherit; outline: none; transition: border-color 0.15s; }
+  textarea:focus { border-color: #a78bfa; }
+  .btn { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.625rem 1.5rem; border-radius: 8px; font-size: 0.875rem; font-weight: 500; cursor: pointer; border: none; transition: opacity 0.15s, transform 0.1s; }
+  .btn:active { transform: scale(0.98); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-primary { background: #a78bfa; color: #0f0f13; }
+  .btn-primary:hover:not(:disabled) { background: #c4b5fd; }
+  .btn-secondary { background: #2a2a35; color: #e2e2e8; }
+  .btn-secondary:hover:not(:disabled) { background: #3a3a50; }
+  .actions { display: flex; gap: 0.75rem; margin-top: 1rem; flex-wrap: wrap; }
+  .preview-wrap { position: relative; border-radius: 8px; overflow: hidden; background: #0a0a0f; border: 1px solid #2a2a35; min-height: 160px; display: flex; align-items: center; justify-content: center; }
+  .preview-wrap canvas, .preview-wrap img { max-width: 100%; max-height: 300px; display: block; border-radius: 4px; }
+  .placeholder-img { color: #333; font-size: 0.8125rem; text-align: center; padding: 2rem; }
+  .status { margin-top: 1rem; padding: 0.75rem 1rem; border-radius: 8px; font-size: 0.8125rem; display: none; }
+  .status.ok { background: rgba(52,211,153,0.1); border: 1px solid rgba(52,211,153,0.3); color: #34d399; display: block; }
+  .status.err { background: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.3); color: #f87171; display: block; }
+  .status.info { background: rgba(167,139,250,0.1); border: 1px solid rgba(167,139,250,0.3); color: #a78bfa; display: block; }
+  .decoded-text { background: #0f0f13; border: 1px solid #2a2a35; border-radius: 8px; padding: 1rem; font-size: 0.875rem; color: #e2e2e8; white-space: pre-wrap; word-break: break-word; min-height: 60px; margin-top: 0.75rem; line-height: 1.6; }
+  .capacity-bar { margin-top: 0.75rem; height: 4px; background: #2a2a35; border-radius: 2px; overflow: hidden; }
+  .capacity-fill { height: 100%; background: #a78bfa; border-radius: 2px; transition: width 0.3s; }
+  .capacity-label { font-size: 0.75rem; color: #555; margin-top: 0.4rem; }
+  .settings-row { display: flex; align-items: center; gap: 1rem; margin-top: 0.75rem; flex-wrap: wrap; }
+  .settings-row label { margin: 0; text-transform: none; letter-spacing: 0; font-size: 0.8125rem; color: #888; }
+  input[type=range] { -webkit-appearance: none; height: 4px; background: #2a2a35; border-radius: 2px; outline: none; cursor: pointer; width: 120px; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: #a78bfa; cursor: pointer; }
+  .range-val { font-size: 0.8125rem; color: #a78bfa; min-width: 24px; }
+  .method-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; background: rgba(167,139,250,0.15); color: #a78bfa; border: 1px solid rgba(167,139,250,0.3); margin-left: 0.5rem; vertical-align: middle; }
+  .info-row { font-size: 0.75rem; color: #555; margin-top: 0.5rem; line-height: 1.6; }
+  .copy-btn { background: none; border: none; color: #555; cursor: pointer; font-size: 0.75rem; padding: 0.25rem 0.5rem; border-radius: 4px; transition: color 0.15s; }
+  .copy-btn:hover { color: #a78bfa; }
+  .decoded-header { display: flex; align-items: center; justify-content: space-between; margin-top: 0.75rem; }
+  progress-ring { display: none; }
+  .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(167,139,250,0.3); border-top-color: #a78bfa; border-radius: 50%; animation: spin 0.7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<h1>PlaneSight: Steganography Tool <span class="method-badge">Spread-Spectrum + RS</span></h1>
+<p class="subtitle">Hide text inside images with redundancy — survives JPEG re-encoding<br><span style="font-size:0.8rem;color:#666;">Proof-of-concept created by Christian Blaze</span></p>
+
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('encode')">Encode</button>
+  <button class="tab" onclick="switchTab('decode')">Decode</button>
+</div>
+
+<div id="tab-encode" class="panel active">
+  <div class="grid">
+    <div class="card">
+      <label>Source image</label>
+      <div class="drop-zone" id="enc-drop">
+        <input type="file" id="enc-file" accept="image/*" onchange="loadEncImage(this)">
+        <div class="icon">🖼</div>
+        <div>Drop image here or click to browse</div>
+        <div style="font-size:0.75rem;margin-top:0.35rem;color:#444">PNG, JPEG, WebP supported</div>
+      </div>
+      <div class="preview-wrap" style="margin-top:1rem">
+        <div class="placeholder-img" id="enc-placeholder">No image loaded</div>
+        <canvas id="enc-canvas" style="display:none"></canvas>
+      </div>
+    </div>
+    <div class="card">
+      <label>Secret message</label>
+      <textarea id="enc-text" placeholder="Enter the text to hide…" oninput="updateCapacity()"></textarea>
+      <div class="capacity-bar"><div class="capacity-fill" id="cap-fill" style="width:0%"></div></div>
+      <div class="capacity-label" id="cap-label">Load an image to see capacity</div>
+
+      <div class="settings-row" style="margin-top:1rem">
+        <label>Embed strength</label>
+        <input type="range" id="strength" min="2" max="8" value="8" oninput="document.getElementById('strength-val').textContent=this.value">
+        <span class="range-val" id="strength-val">8</span>
+      </div>
+      <div class="info-row">Higher strength = more robust against JPEG compression, but causes slightly more visible brightness shift. </div>
+
+      <div class="actions">
+        <button class="btn btn-primary" id="enc-btn" onclick="encode()" disabled>
+          <span id="enc-spinner" style="display:none" class="spinner"></span>
+          Encode &amp; Download
+        </button>
+        <button class="btn btn-secondary" id="test-btn" onclick="runSelfTest()" disabled style="display:none">
+          Self-Test (no file)
+        </button>
+        <button class="btn btn-secondary" id="jpeg-btn" onclick="runJpegTest()" disabled>
+          JPEG Survival Test
+        </button>
+        <label style="display:flex;align-items:center;gap:8px;margin:0">
+          <span style="font-size:0.8rem;color:#888">Q</span>
+          <input type="range" id="jpeg-q" min="1" max="100" value="80" style="width:80px" oninput="document.getElementById('jpeg-q-val').textContent=this.value">
+          <span class="range-val" id="jpeg-q-val" style="min-width:28px">80</span>
+        </label>
+      </div>
+      <div class="status" id="enc-status"></div>
+      <pre id="debug-out" style="display:none;margin-top:0.75rem;padding:0.75rem;background:#0a0a0f;border:1px solid #2a2a35;border-radius:8px;font-size:0.75rem;color:#a78bfa;white-space:pre-wrap;word-break:break-all;max-height:300px;overflow-y:auto"></pre>
+    </div>
+  </div>
+</div>
+
+<div id="tab-decode" class="panel">
+  <div class="grid">
+    <div class="card">
+      <label>Encoded image</label>
+      <div class="drop-zone" id="dec-drop">
+        <input type="file" id="dec-file" accept="image/*" onchange="loadDecImage(this)">
+        <div class="icon">🔍</div>
+        <div>Drop encoded image here or click to browse</div>
+      </div>
+      <div class="preview-wrap" style="margin-top:1rem">
+        <div class="placeholder-img" id="dec-placeholder">No image loaded</div>
+        <canvas id="dec-canvas" style="display:none"></canvas>
+      </div>
+    </div>
+    <div class="card">
+      <label>Extracted message</label>
+      <div class="info-row" style="margin-top:0">The tool automatically detects the embedded data and corrects errors introduced by compression.</div>
+
+      <div class="actions">
+        <button class="btn btn-primary" id="dec-btn" onclick="decode()" disabled>
+          <span id="dec-spinner" style="display:none" class="spinner"></span>
+          Extract Message
+        </button>
+      </div>
+      <div class="status" id="dec-status"></div>
+      <div class="decoded-header">
+        <span style="font-size:0.8125rem;color:#555" id="dec-meta"></span>
+        <button class="copy-btn" id="copy-btn" style="display:none" onclick="copyDecoded()">Copy ↗</button>
+      </div>
+      <div class="decoded-text" id="dec-output" style="display:none"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── Reed-Solomon GF(256) implementation ───────────────────────────────────
+const GF_EXP = new Uint8Array(512);
+const GF_LOG = new Uint8Array(256);
+(function initGF() {
+  let x = 1;
+  for (let i = 0; i < 255; i++) {
+    GF_EXP[i] = x; GF_LOG[x] = i;
+    x <<= 1; if (x & 0x100) x ^= 0x11d;
+  }
+  for (let i = 255; i < 512; i++) GF_EXP[i] = GF_EXP[i - 255];
+})();
+
+function gfMul(x, y) { return (x === 0 || y === 0) ? 0 : GF_EXP[GF_LOG[x] + GF_LOG[y]]; }
+function gfDiv(x, y) { if (y === 0) throw new Error('GF div by zero'); return x === 0 ? 0 : GF_EXP[(GF_LOG[x] + 255 - GF_LOG[y]) % 255]; }
+function gfPow(x, p) { return GF_EXP[(GF_LOG[x] * p) % 255]; }
+function gfPolyMul(p, q) {
+  const r = new Uint8Array(p.length + q.length - 1);
+  for (let i = 0; i < p.length; i++) for (let j = 0; j < q.length; j++) r[i+j] ^= gfMul(p[i], q[j]);
+  return r;
+}
+function gfPolyDiv(dividend, divisor) {
+  let msg = new Uint8Array(dividend);
+  for (let i = 0; i < dividend.length - (divisor.length - 1); i++) {
+    const c = msg[i];
+    if (c !== 0) for (let j = 1; j < divisor.length; j++) msg[i+j] ^= gfMul(divisor[j], c);
+  }
+  const sep = -(divisor.length - 1);
+  return [msg.slice(0, sep), msg.slice(sep)];
+}
+function rsGenPoly(nsym) {
+  let g = new Uint8Array([1]);
+  for (let i = 0; i < nsym; i++) g = gfPolyMul(g, new Uint8Array([1, gfPow(2, i)]));
+  return g;
+}
+function rsEncode(msg, nsym) {
+  const gen = rsGenPoly(nsym);
+  const padded = new Uint8Array(msg.length + nsym);
+  padded.set(msg);
+  const [, rem] = gfPolyDiv(padded, gen);
+  const out = new Uint8Array(msg.length + nsym);
+  out.set(msg); out.set(rem, msg.length);
+  return out;
+}
+function rsCalcSyndromes(msg, nsym) {
+  const s = [];
+  for (let i = 0; i < nsym; i++) {
+    let v = 0;
+    for (let j = 0; j < msg.length; j++) v = gfMul(v, gfPow(2, i)) ^ msg[j];
+    s.push(v);
+  }
+  return s;
+}
+function rsDecode(msg, nsym) {
+  msg = new Uint8Array(msg);
+  const synd = rsCalcSyndromes(msg, nsym);
+  if (synd.every(s => s === 0)) return msg.slice(0, msg.length - nsym);
+  // Berlekamp-Massey
+  let C = [1], B = [1], L = 0, m = 1, b = 1;
+  for (let n = 0; n < nsym; n++) {
+    let d = synd[n];
+    for (let i = 1; i <= L; i++) d ^= gfMul(C[i] || 0, synd[n - i]);
+    if (d === 0) { m++; continue; }
+    const T = [...C];
+    const coef = gfDiv(d, b);
+    while (C.length < B.length + m) C.push(0);
+    for (let i = m; i < B.length + m; i++) C[i] ^= gfMul(coef, B[i - m] || 0);
+    if (2 * L <= n) { L = n + 1 - L; B = T; b = d; m = 1; } else m++;
+  }
+  const errPoly = C;
+  // Chien search
+  const errPos = [];
+  for (let i = 0; i < msg.length; i++) {
+    let v = 0;
+    const xi = gfPow(2, i);
+    for (let j = 0; j < errPoly.length; j++) v ^= gfMul(errPoly[j], gfPow(xi, j));
+    if (v === 0) errPos.push(msg.length - 1 - i);
+  }
+  if (errPos.length !== L) throw new Error('RS: uncorrectable');
+  // Forney
+  let omega = [0];
+  for (let i = 0; i < nsym; i++) {
+    while (omega.length <= i) omega.push(0);
+    omega[i] ^= synd[i];
+    for (let j = 1; j < errPoly.length; j++) if (i >= j) omega[i] ^= gfMul(errPoly[j], synd[i - j]);
+  }
+  for (let k = 0; k < errPos.length; k++) {
+    const xi = gfPow(2, msg.length - 1 - errPos[k]);
+    let omegaVal = 0;
+    for (let j = 0; j < omega.length; j++) omegaVal ^= gfMul(omega[j], gfPow(xi, j));
+    let denom = 0;
+    for (let j = 0; j < errPoly.length; j += 2) denom ^= gfMul(errPoly[j] || 0, gfPow(xi, j));
+    const mag = gfDiv(omegaVal, denom);
+    msg[errPos[k]] ^= mag;
+  }
+  return msg.slice(0, msg.length - nsym);
+}
+
+// ─── Steganography core: Spread-Spectrum LSB ───────────────────────────────
+// Uses a deterministic pseudo-random sequence (seeded PRNG) to spread bits
+// across the image, encoding each bit multiple times for redundancy.
+// Works in the blue channel (least perceptually sensitive).
+
+function mulberry32(seed) {
+  return function() {
+    seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+    let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+function buildShuffle(n, seed) {
+  const arr = Array.from({length: n}, (_, i) => i);
+  const rand = mulberry32(seed);
+  for (let i = n - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+const MAGIC = [0x53, 0x54, 0x47]; // "STG"
+const RS_ECC  = 32;  // parity bytes per codeword
+const SPREAD  = 16;  // copies of each bit across random pixels
+
+// ── JPEG-robust embedding via luminance grid quantisation ─────────────────
+// Divide luminance (0-255) into a grid of step STEP.
+// Even grid index = bit 0, odd grid index = bit 1.
+// Encoder snaps each pixel's Y to the nearest grid point with the right parity.
+// Decoder reads parity of round(Y/STEP) — survives JPEG as long as
+// the compression shifts Y by less than STEP (guaranteed for quality >= 50
+// with STEP >= 32).
+//
+// Wire format (two independent RS codewords back-to-back):
+//   CW1: rsEncode([strength, MAGIC[0], MAGIC[1], MAGIC[2], lenHi, lenLo], RS_ECC)
+//   CW2: rsEncode([...msgBytes], RS_ECC)
+// CW1 is always (6 + RS_ECC) bytes. CW2 is (msgLen + RS_ECC) bytes.
+// Both are embedded consecutively in the shuffled pixel order.
+
+function getLumaStep(strength) { return strength * 12; } // 24-96
+
+function encodeData(imageData, bytes, strength) {
+  const STEP = getLumaStep(strength);
+  const data = imageData.data;
+  const totalPx = imageData.width * imageData.height;
+
+  // Build two codewords
+  const lenHi = bytes.length >> 8, lenLo = bytes.length & 0xff;
+  const cw1 = rsEncode(new Uint8Array([strength, MAGIC[0], MAGIC[1], MAGIC[2], lenHi, lenLo]), RS_ECC);
+  const cw2 = rsEncode(bytes, RS_ECC);
+  // Concatenate into one flat bit stream
+  const allBytes = new Uint8Array(cw1.length + cw2.length);
+  allBytes.set(cw1); allBytes.set(cw2, cw1.length);
+
+  const totalBits = allBytes.length * 8;
+  const neededPx  = totalBits * SPREAD;
+  if (neededPx > totalPx) throw new Error(
+    `Image too small. Need ${neededPx} pixels for this message. Try a larger image or shorter message.`);
+
+  const order = buildShuffle(totalPx, 0x5EED1234);
+  const out = new Uint8ClampedArray(data);
+
+  for (let bitIdx = 0; bitIdx < totalBits; bitIdx++) {
+    const bit = (allBytes[bitIdx >> 3] >> (7 - (bitIdx & 7))) & 1;
+    for (let s = 0; s < SPREAD; s++) {
+      const base = order[bitIdx * SPREAD + s] * 4;
+      const r = out[base], g = out[base+1], b = out[base+2];
+      const Y = 0.299*r + 0.587*g + 0.114*b;
+      let gridIdx = Math.round(Y / STEP);
+      if ((gridIdx & 1) !== bit) {
+        // nudge to nearest neighbour with correct parity
+        gridIdx += (Math.abs((gridIdx+1)*STEP - Y) < Math.abs((gridIdx-1)*STEP - Y)) ? 1 : -1;
+      }
+      const tY = Math.max(0, Math.min(255, gridIdx * STEP));
+      const dY = tY - Y;
+      out[base]   = Math.max(0, Math.min(255, Math.round(r + dY)));
+      out[base+1] = Math.max(0, Math.min(255, Math.round(g + dY)));
+      out[base+2] = Math.max(0, Math.min(255, Math.round(b + dY)));
+    }
+  }
+  return out;
+}
+
+function readBit(data, order, bitIdx, STEP) {
+  let ones = 0;
+  for (let s = 0; s < SPREAD; s++) {
+    const base = order[bitIdx * SPREAD + s] * 4;
+    if (base + 2 >= data.length) continue;
+    const Y = 0.299*data[base] + 0.587*data[base+1] + 0.114*data[base+2];
+    ones += (Math.round(Y / STEP) & 1);
+  }
+  return ones > SPREAD / 2 ? 1 : 0;
+}
+
+function readBitsRange(data, order, startBit, count, STEP) {
+  const bits = [];
+  for (let i = startBit; i < startBit + count; i++) bits.push(readBit(data, order, i, STEP));
+  return bits;
+}
+
+function bitsToBytes(bits) {
+  const out = [];
+  for (let i = 0; i + 7 < bits.length; i += 8) {
+    let b = 0;
+    for (let j = 0; j < 8; j++) b = (b << 1) | bits[i+j];
+    out.push(b);
+  }
+  return new Uint8Array(out);
+}
+
+function decodeData(imageData) {
+  const data = imageData.data;
+  const totalPx = imageData.width * imageData.height;
+  const order = buildShuffle(totalPx, 0x5EED1234);
+
+  // CW1 is always exactly (6 + RS_ECC) bytes regardless of message length.
+  const cw1Len = 6 + RS_ECC;
+  const STEPS = [24, 36, 48, 60, 72, 84, 96];
+  let hdr = null, usedSTEP = null;
+
+  for (const STEP of STEPS) {
+    const raw = bitsToBytes(readBitsRange(data, order, 0, cw1Len * 8, STEP));
+    try {
+      const dec = rsDecode(raw, RS_ECC);
+      // dec = [strength, M, A, G, lenHi, lenLo]
+      if (dec[1] === MAGIC[0] && dec[2] === MAGIC[1] && dec[3] === MAGIC[2]) {
+        hdr = dec; usedSTEP = STEP; break;
+      }
+    } catch(e) { /* wrong STEP, try next */ }
+  }
+
+  if (!hdr) throw new Error(
+    'No hidden data found. Make sure this image was encoded with this tool and has not been resized or compressed below quality 50.');
+
+  const msgLen = (hdr[4] << 8) | hdr[5];
+  if (msgLen < 0 || msgLen > 200000) throw new Error('Corrupt length field: ' + msgLen);
+
+  // CW2 starts immediately after CW1 in the bit stream
+  const cw2StartBit = cw1Len * 8;
+  const cw2Len = msgLen + RS_ECC;
+  const raw2 = bitsToBytes(readBitsRange(data, order, cw2StartBit, cw2Len * 8, usedSTEP));
+
+  let msg;
+  try { msg = rsDecode(raw2, RS_ECC); }
+  catch(e) { throw new Error('Message too corrupted to recover. Try a higher strength, or avoid heavy JPEG compression.'); }
+
+  return new TextDecoder().decode(msg);
+}
+
+// ─── Self-test: encode then immediately decode in memory ──────────────────────
+function selfTest(imageData, text, strength) {
+  const log = [];
+  try {
+    const msgBytes = new TextEncoder().encode(text);
+    log.push(`Input: "${text}" (${msgBytes.length} bytes), strength=${strength}`);
+
+    const STEP = getLumaStep(strength);
+    log.push(`STEP=${STEP}, SPREAD=${SPREAD}, RS_ECC=${RS_ECC}`);
+
+    // Encode
+    const encoded = encodeData(imageData, msgBytes, strength);
+    log.push(`Encoded OK, pixel array length=${encoded.length}`);
+
+    // Wrap in ImageData and decode immediately
+    const testImg = new ImageData(encoded, imageData.width, imageData.height);
+
+    // Manually check first few pixels' luminance parity
+    const order = buildShuffle(imageData.width * imageData.height, 0x5EED1234);
+    const lenHi = msgBytes.length >> 8, lenLo = msgBytes.length & 0xff;
+    const cw1 = rsEncode(new Uint8Array([strength, MAGIC[0], MAGIC[1], MAGIC[2], lenHi, lenLo]), RS_ECC);
+    const cw2 = rsEncode(msgBytes, RS_ECC);
+    const allBytes = new Uint8Array(cw1.length + cw2.length);
+    allBytes.set(cw1); allBytes.set(cw2, cw1.length);
+    const expectedBits = [];
+    for (let i = 0; i < 16; i++) expectedBits.push((allBytes[i >> 3] >> (7 - (i & 7))) & 1);
+    log.push(`Expected first 16 bits: [${expectedBits.join(',')}]`);
+
+    const actualBits = [];
+    for (let i = 0; i < 16; i++) {
+      const px = order[i * SPREAD];
+      const base = px * 4;
+      const Y = 0.299*encoded[base] + 0.587*encoded[base+1] + 0.114*encoded[base+2];
+      actualBits.push(Math.round(Y / STEP) & 1);
+    }
+    log.push(`Actual   first 16 bits (single pixel, no vote): [${actualBits.join(',')}]`);
+
+    // Full decode
+    const result = decodeData(testImg);
+    log.push(`Decode OK: "${result}"`);
+    log.push(result === text ? '✓ ROUND-TRIP PASSED' : `✗ MISMATCH: got "${result}"`);
+  } catch(e) {
+    log.push(`✗ ERROR: ${e.message}`);
+  }
+  return log.join('\n');
+}
+
+// ─── Full encode flow: read image for capacity + embed ─────────────────────
+let encImg = null, decImg = null;
+
+function loadEncImage(input) {
+  const file = input.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.getElementById('enc-canvas');
+      canvas.width = img.width; canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+      encImg = ctx.getImageData(0, 0, img.width, img.height);
+      encImg._canvas = canvas;
+      encImg._ctx = ctx;
+      document.getElementById('enc-placeholder').style.display = 'none';
+      canvas.style.display = 'block';
+      document.getElementById('enc-btn').disabled = false;
+      document.getElementById('test-btn').disabled = false;
+      document.getElementById('jpeg-btn').disabled = false;
+      updateCapacity();
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function loadDecImage(input) {
+  const file = input.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.getElementById('dec-canvas');
+      canvas.width = img.width; canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+      decImg = ctx.getImageData(0, 0, img.width, img.height);
+      document.getElementById('dec-placeholder').style.display = 'none';
+      canvas.style.display = 'block';
+      document.getElementById('dec-btn').disabled = false;
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function updateCapacity() {
+  if (!encImg) return;
+  const totalPx = encImg.width * encImg.height;
+  const maxBits = Math.floor(totalPx / SPREAD);
+  const maxBytes = Math.floor(maxBits / 8) - MAGIC.length - 2 - RS_ECC;
+  const text = document.getElementById('enc-text').value;
+  const msgBytes = new TextEncoder().encode(text).length;
+  const pct = Math.min(100, (msgBytes / maxBytes) * 100);
+  document.getElementById('cap-fill').style.width = pct + '%';
+  document.getElementById('cap-label').textContent =
+    `${msgBytes} / ${maxBytes} bytes used (${Math.round(pct)}%) — image: ${encImg.width}×${encImg.height}`;
+  document.getElementById('cap-fill').style.background = pct > 90 ? '#f87171' : pct > 70 ? '#fbbf24' : '#a78bfa';
+}
+
+function setStatus(id, type, msg) {
+  const el = document.getElementById(id);
+  el.className = 'status ' + type;
+  el.textContent = msg;
+}
+
+async function encode() {
+  if (!encImg) return;
+  const text = document.getElementById('enc-text').value.trim();
+  if (!text) { setStatus('enc-status', 'err', 'Please enter a message to encode.'); return; }
+  const strength = parseInt(document.getElementById('strength').value);
+  const spinner = document.getElementById('enc-spinner');
+  const btn = document.getElementById('enc-btn');
+  btn.disabled = true; spinner.style.display = 'inline-block';
+
+  await new Promise(r => setTimeout(r, 10));
+  try {
+    const msgBytes = new TextEncoder().encode(text);
+    const modifiedData = encodeData(encImg, msgBytes, strength);
+
+    // Draw to canvas and download
+    const canvas = document.getElementById('enc-canvas');
+    const ctx = canvas.getContext('2d');
+    const newImageData = new ImageData(modifiedData, encImg.width, encImg.height);
+    ctx.putImageData(newImageData, 0, 0);
+
+    await new Promise((resolve, reject) => {
+      canvas.toBlob(blob => {
+        if (!blob) { reject(new Error('Failed to create image blob.')); return; }
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.download = 'steg_encoded.png';
+        link.href = url;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        resolve();
+      }, 'image/png');
+    });
+    setStatus('enc-status', 'ok', `✓ Encoded ${msgBytes.length} bytes — RS(${RS_ECC}) error correction, ${SPREAD}× spread, luminance-domain embedding. Survives JPEG quality ≥ 60. Downloaded as PNG.`);
+  } catch(e) {
+    setStatus('enc-status', 'err', '✗ ' + e.message);
+  }
+  btn.disabled = false; spinner.style.display = 'none';
+}
+
+async function decode() {
+  if (!decImg) return;
+  const spinner = document.getElementById('dec-spinner');
+  const btn = document.getElementById('dec-btn');
+  btn.disabled = true; spinner.style.display = 'inline-block';
+  document.getElementById('dec-output').style.display = 'none';
+  document.getElementById('copy-btn').style.display = 'none';
+
+  await new Promise(r => setTimeout(r, 10));
+  try {
+    const text = decodeData(decImg);
+    setStatus('dec-status', 'ok', `✓ Message successfully decoded and error-corrected.`);
+    document.getElementById('dec-meta').textContent = `${new TextEncoder().encode(text).length} bytes decoded`;
+    document.getElementById('dec-output').textContent = text;
+    document.getElementById('dec-output').style.display = 'block';
+    document.getElementById('copy-btn').style.display = 'inline';
+  } catch(e) {
+    setStatus('dec-status', 'err', '✗ ' + e.message);
+    document.getElementById('dec-meta').textContent = '';
+  }
+  btn.disabled = false; spinner.style.display = 'none';
+}
+
+function copyDecoded() {
+  const txt = document.getElementById('dec-output').textContent;
+  navigator.clipboard.writeText(txt).then(() => {
+    const btn = document.getElementById('copy-btn');
+    btn.textContent = 'Copied ✓';
+    setTimeout(() => btn.textContent = 'Copy ↗', 1500);
+  });
+}
+
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', ['encode','decode'][i] === name));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+}
+
+async function runSelfTest() {
+  if (!encImg) return;
+  const text = document.getElementById('enc-text').value.trim() || 'Hello steganography test!';
+  const strength = parseInt(document.getElementById('strength').value);
+  const dbg = document.getElementById('debug-out');
+  dbg.style.display = 'block';
+  dbg.textContent = 'Running...';
+  await new Promise(r => setTimeout(r, 10));
+  dbg.textContent = selfTest(encImg, text, strength);
+}
+
+async function runJpegTest() {
+  if (!encImg) return;
+  const text = document.getElementById('enc-text').value.trim() || 'Hello steganography test!';
+  const strength = parseInt(document.getElementById('strength').value);
+  const quality  = parseInt(document.getElementById('jpeg-q').value) / 100;
+  const dbg = document.getElementById('debug-out');
+  dbg.style.display = 'block';
+  dbg.textContent = 'Running JPEG survival test...';
+  await new Promise(r => setTimeout(r, 10));
+
+  const log = [];
+  try {
+    const msgBytes = new TextEncoder().encode(text);
+    log.push(`Message: "${text}" (${msgBytes.length} bytes), strength=${strength}, JPEG quality=${Math.round(quality*100)}`);
+
+    // Step 1: encode into a canvas
+    const encoded = encodeData(encImg, msgBytes, strength);
+    const w = encImg.width, h = encImg.height;
+    const encCanvas = document.createElement('canvas');
+    encCanvas.width = w; encCanvas.height = h;
+    const ctx1 = encCanvas.getContext('2d');
+    ctx1.putImageData(new ImageData(encoded, w, h), 0, 0);
+    log.push(`Encoded OK`);
+
+    // Step 2: compress to JPEG data URL then reload into a new canvas
+    const jpegDataUrl = encCanvas.toDataURL('image/jpeg', quality);
+    const jpegBytes = Math.round((jpegDataUrl.length * 3) / 4 / 1024);
+    log.push(`JPEG size ~${jpegBytes} KB at quality ${Math.round(quality*100)}`);
+
+    await new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        const c2 = document.createElement('canvas');
+        c2.width = w; c2.height = h;
+        const ctx2 = c2.getContext('2d');
+        ctx2.drawImage(img, 0, 0);
+        const afterJpeg = ctx2.getImageData(0, 0, w, h);
+
+        // Check how much Y drifted on the first few encoded pixels
+        const order = buildShuffle(w * h, 0x5EED1234);
+        const STEP = getLumaStep(strength);
+        let maxDrift = 0;
+        for (let i = 0; i < 32; i++) {
+          const base = order[i * SPREAD] * 4;
+          const Ybefore = 0.299*encoded[base]   + 0.587*encoded[base+1]   + 0.114*encoded[base+2];
+          const Yafter  = 0.299*afterJpeg.data[base] + 0.587*afterJpeg.data[base+1] + 0.114*afterJpeg.data[base+2];
+          const drift = Math.abs(Ybefore - Yafter);
+          if (drift > maxDrift) maxDrift = drift;
+        }
+        log.push(`Max Y drift after JPEG: ${maxDrift.toFixed(1)} (safe if < ${STEP/2} = STEP/2)`);
+        log.push(maxDrift < STEP/2 ? `✓ Drift within safe range` : `⚠ Drift exceeds STEP/2 — increase strength or JPEG quality`);
+
+        // Step 3: decode
+        try {
+          const result = decodeData(afterJpeg);
+          log.push(`Decode OK: "${result}"`);
+          log.push(result === text ? '✓ JPEG SURVIVAL TEST PASSED' : `✗ MISMATCH: got "${result}"`);
+        } catch(e) {
+          log.push(`✗ Decode failed: ${e.message}`);
+        }
+        resolve();
+      };
+      img.onerror = reject;
+      img.src = jpegDataUrl;
+    });
+  } catch(e) {
+    log.push(`✗ ERROR: ${e.message}`);
+  }
+  dbg.textContent = log.join('\n');
+}
+
+// Drag-and-drop support
+['enc-drop','dec-drop'].forEach(id => {
+  const el = document.getElementById(id);
+  el.addEventListener('dragover', e => { e.preventDefault(); el.classList.add('drag-over'); });
+  el.addEventListener('dragleave', () => el.classList.remove('drag-over'));
+  el.addEventListener('drop', e => {
+    e.preventDefault(); el.classList.remove('drag-over');
+    const f = e.dataTransfer.files[0]; if (!f) return;
+    const inp = el.querySelector('input[type=file]');
+    const dt = new DataTransfer(); dt.items.add(f); inp.files = dt.files;
+    inp.dispatchEvent(new Event('change'));
+  });
+});
+</script>
+</body>
+</html>
