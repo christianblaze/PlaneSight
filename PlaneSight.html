@@ -45,6 +45,14 @@
   .capacity-label { font-size: 0.75rem; color: #555; margin-top: 0.4rem; }
   .settings-row { display: flex; align-items: center; gap: 1rem; margin-top: 0.75rem; flex-wrap: wrap; }
   .settings-row label { margin: 0; text-transform: none; letter-spacing: 0; font-size: 0.8125rem; color: #888; }
+  .method-checks { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem 1rem; margin-top: 0.75rem; }
+  @media(max-width: 700px) { .method-checks { grid-template-columns: 1fr; } }
+  .method-check { display: flex; align-items: flex-start; gap: 0.5rem; font-size: 0.8125rem; color: #cfcfd8; line-height: 1.35; position: relative; }
+  .method-check input { margin-top: 0.15rem; accent-color: #a78bfa; }
+  .method-check small { display: block; color: #666; font-size: 0.72rem; margin-top: 0.15rem; }
+  .tip { display: inline-flex; align-items: center; justify-content: center; width: 15px; height: 15px; margin-left: 0.35rem; border: 1px solid #3a3a50; border-radius: 50%; color: #888; font-size: 0.65rem; cursor: help; position: relative; vertical-align: text-top; }
+  .tip::after { content: attr(data-tip); position: absolute; left: 50%; bottom: calc(100% + 8px); transform: translateX(-50%); width: max-content; max-width: 220px; padding: 0.45rem 0.6rem; border-radius: 6px; background: #0a0a0f; border: 1px solid #3a3a50; color: #e2e2e8; font-size: 0.72rem; line-height: 1.25; white-space: normal; opacity: 0; pointer-events: none; transition: opacity 0.15s; z-index: 5; box-shadow: 0 8px 24px rgba(0,0,0,0.35); }
+  .tip:hover::after, .tip:focus::after { opacity: 1; }
   input[type=range] { -webkit-appearance: none; height: 4px; background: #2a2a35; border-radius: 2px; outline: none; cursor: pointer; width: 120px; }
   input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: #a78bfa; cursor: pointer; }
   .range-val { font-size: 0.8125rem; color: #a78bfa; min-width: 24px; }
@@ -60,8 +68,8 @@
 </head>
 <body>
 
-<h1>PlaneSight: Steganography Tool <span class="method-badge">Spread-Spectrum + RS</span></h1>
-<p class="subtitle">Hide text inside images with redundancy — survives JPEG re-encoding<br><span style="font-size:0.8rem;color:#666;">Proof-of-concept created by Christian Blaze</span></p>
+<h1>PlaneSight: Steganography Tool <span class="method-badge">Experimental v0.9.1</span></h1>
+<p class="subtitle">Experimental steganography with multi-scale resize-resilient embedding<br><span style="font-size:0.8rem;color:#666;">Proof-of-concept created by Christian Blaze</span></p>
 
 <div class="tabs">
   <button class="tab active" onclick="switchTab('encode')">Encode</button>
@@ -91,27 +99,34 @@
 
       <div class="settings-row" style="margin-top:1rem">
         <label>Embed strength</label>
-        <input type="range" id="strength" min="2" max="8" value="8" oninput="document.getElementById('strength-val').textContent=this.value">
-        <span class="range-val" id="strength-val">8</span>
+        <input type="range" id="strength" min="2" max="8" value="6" oninput="document.getElementById('strength-val').textContent=this.value">
+        <span class="range-val" id="strength-val">6</span>
       </div>
-      <div class="info-row">Higher strength = more robust against JPEG compression, but causes slightly more visible brightness shift. </div>
+      <div class="info-row">Higher strength improves survivability but may make changes more visible. Use lower values for cleaner images, higher values for tougher JPEG conversion.</div>
+
+      <div style="margin-top:1rem">
+        <label>Encoding methods</label>
+        <div class="method-checks" id="encoding-methods" onchange="updateModeHelp(); updateCapacity();">
+          <label class="method-check"><input type="checkbox" value="robust"><span>JPEG Resilient <span class="tip" tabindex="0" data-tip="Snaps brightness to bit-coded levels." title="Snaps brightness to bit-coded levels.">?</span><small>Robust luminance embedding for JPEG tests.</small></span></label>
+          <label class="method-check"><input type="checkbox" value="stealth" checked><span>PNG Stealth <span class="tip" tabindex="0" data-tip="Sets tiny blue-channel LSBs." title="Sets tiny blue-channel LSBs.">?</span><small>Subtle PNG-only blue-channel LSB embedding.</small></span></label>
+          <label class="method-check"><input type="checkbox" value="dct" checked><span>DCT Lab <span class="tip" tabindex="0" data-tip="Compares 8x8 frequency coefficients." title="Compares 8x8 frequency coefficients.">?</span><small>Experimental 8×8 frequency embedding.</small></span></label>
+          <label class="method-check"><input type="checkbox" value="resize"><span>Resize Lab <span class="tip" tabindex="0" data-tip="Stores bits in regional brightness differences." title="Stores bits in regional brightness differences.">?</span><small>Normalized regional embedding for short messages.</small></span></label>
+          <label class="method-check"><input type="checkbox" value="watermark" checked><span>Watermark Lab <span class="tip" tabindex="0" data-tip="Repeats blue parity across random pixels." title="Repeats blue parity across random pixels.">?</span><small>Subtle blue-channel parity watermarking.</small></span></label>
+          <label class="method-check"><input type="checkbox" value="wavelet" checked><span>Wavelet Lab <span class="tip" tabindex="0" data-tip="Nudges Haar wavelet coefficients." title="Nudges Haar wavelet coefficients.">?</span><small>Experimental Haar-wavelet spread spectrum.</small></span></label>
+          <label class="method-check"><input type="checkbox" value="scale" checked><span>Scale Lab <span class="tip" tabindex="0" data-tip="Uses normalized chroma region pairs." title="Uses normalized chroma region pairs.">?</span><small>1080p downscale-resilient normalized regions.</small></span></label>
+          <label class="method-check"><input type="checkbox" value="metadata" checked><span>Metadata <span class="tip" tabindex="0" data-tip="Stores the message in a PNG text chunk." title="Stores the message in a PNG text chunk.">?</span><small>Embeds the message in PNG metadata too.</small></span></label>
+        </div>
+      </div>
+      <div class="info-row">Check one or more methods. When several are checked, PlaneSight applies them in a fixed compatibility order and verifies that every checked method can still decode the exact message before downloading. If a combination interferes, encoding stops instead of saving a broken image.</div>
 
       <div class="actions">
         <button class="btn btn-primary" id="enc-btn" onclick="encode()" disabled>
           <span id="enc-spinner" style="display:none" class="spinner"></span>
           Encode &amp; Download
         </button>
-        <button class="btn btn-secondary" id="test-btn" onclick="runSelfTest()" disabled style="display:none">
-          Self-Test (no file)
+        <button class="btn btn-secondary" id="checked-test-btn" onclick="runCheckedMethodsTest()" disabled title="Checks the selected methods for errors before creating a file.">
+          Test Checked Methods <span class="tip" tabindex="0" data-tip="Checks selected methods before creating a file." title="Checks selected methods before creating a file.">?</span>
         </button>
-        <button class="btn btn-secondary" id="jpeg-btn" onclick="runJpegTest()" disabled>
-          JPEG Survival Test
-        </button>
-        <label style="display:flex;align-items:center;gap:8px;margin:0">
-          <span style="font-size:0.8rem;color:#888">Q</span>
-          <input type="range" id="jpeg-q" min="1" max="100" value="80" style="width:80px" oninput="document.getElementById('jpeg-q-val').textContent=this.value">
-          <span class="range-val" id="jpeg-q-val" style="min-width:28px">80</span>
-        </label>
       </div>
       <div class="status" id="enc-status"></div>
       <pre id="debug-out" style="display:none;margin-top:0.75rem;padding:0.75rem;background:#0a0a0f;border:1px solid #2a2a35;border-radius:8px;font-size:0.75rem;color:#a78bfa;white-space:pre-wrap;word-break:break-all;max-height:300px;overflow-y:auto"></pre>
@@ -135,7 +150,21 @@
     </div>
     <div class="card">
       <label>Extracted message</label>
-      <div class="info-row" style="margin-top:0">The tool automatically detects the embedded data and corrects errors introduced by compression.</div>
+      <div class="info-row" style="margin-top:0">Choose the same mode used for encoding, or leave on Auto. Resize Lab is experimental: first test with the exact downloaded PNG before resizing.</div>
+      <div class="settings-row" style="margin-top:1rem">
+        <label>Decode mode</label>
+        <select id="decode-mode" style="background:#0f0f13;border:1px solid #2a2a35;border-radius:8px;color:#e2e2e8;font-size:0.875rem;padding:0.5rem;outline:none">
+          <option value="auto">Auto-detect</option>
+          <option value="robust">JPEG Resilient</option>
+          <option value="resize">Resize Lab</option>
+          <option value="watermark">Watermark Lab</option>
+          <option value="wavelet">Wavelet Lab</option>
+          <option value="scale">Scale Lab</option>
+          <option value="stealth">PNG Stealth</option>
+          <option value="dct">DCT Lab</option>
+          <option value="metadata">Metadata</option>
+        </select>
+      </div>
 
       <div class="actions">
         <button class="btn btn-primary" id="dec-btn" onclick="decode()" disabled>
@@ -154,6 +183,8 @@
 </div>
 
 <script>
+// PlaneSight Experimental Rewrite v1.1.2.2.2.1
+// Modes: JPEG Resilient, PNG Stealth, DCT Lab, Resize Lab
 // ─── Reed-Solomon GF(256) implementation ───────────────────────────────────
 const GF_EXP = new Uint8Array(512);
 const GF_LOG = new Uint8Array(256);
@@ -364,6 +395,10 @@ function bitsToBytes(bits) {
   return new Uint8Array(out);
 }
 
+function clamp8(v) {
+  return Math.max(0, Math.min(255, Math.round(v)));
+}
+
 function decodeData(imageData) {
   const data = imageData.data;
   const totalPx = imageData.width * imageData.height;
@@ -401,6 +436,2386 @@ function decodeData(imageData) {
   catch(e) { throw new Error('Message too corrupted to recover. Try a higher strength, or avoid heavy JPEG compression.'); }
 
   return new TextDecoder().decode(msg);
+}
+
+
+// ─── Stealth Mode: perceptual color-matched LSB embedding ───────────────────
+// This mode is designed to be less visually obvious than the luminance grid
+// method. It makes tiny channel-level changes, prefers textured pixels, and
+// avoids large visible brightness shifts. It is experimental and less robust
+// against heavy JPEG recompression than Robust Mode.
+
+const STEALTH_SEED = 0x51E17EAF;
+const STEALTH_MAGIC = [0x50, 0x53, 0x54]; // "PST"
+const STEALTH_ECC = 32;
+const STEALTH_SPREAD = 21;
+
+function localTextureScore(data, width, height, px) {
+  const x = px % width;
+  const y = Math.floor(px / width);
+  if (x <= 0 || y <= 0 || x >= width - 1 || y >= height - 1) return 0;
+  const base = px * 4;
+  const Y = 0.299*data[base] + 0.587*data[base+1] + 0.114*data[base+2];
+  let total = 0, count = 0;
+  for (let dy = -1; dy <= 1; dy++) {
+    for (let dx = -1; dx <= 1; dx++) {
+      if (dx === 0 && dy === 0) continue;
+      const nb = ((y + dy) * width + (x + dx)) * 4;
+      const nY = 0.299*data[nb] + 0.587*data[nb+1] + 0.114*data[nb+2];
+      total += Math.abs(Y - nY); count++;
+    }
+  }
+  return total / count;
+}
+
+function buildTextureAwareOrder(imageData, seed) {
+  const totalPx = imageData.width * imageData.height;
+  const shuffled = buildShuffle(totalPx, seed);
+  const data = imageData.data, w = imageData.width, h = imageData.height;
+  const scored = shuffled.map(px => ({ px, score: localTextureScore(data, w, h, px) }));
+  scored.sort((a, b) => b.score - a.score);
+  return scored.map(x => x.px);
+}
+
+function pickStealthChannel(data, base) {
+  const b = data[base+2], g = data[base+1], r = data[base];
+  if (b > 1 && b < 254) return 2;
+  if (g > 1 && g < 254) return 1;
+  if (r > 1 && r < 254) return 0;
+  return 2;
+}
+
+function setChannelLSBColorMatched(out, base, channel, bit) {
+  const idx = base + channel;
+  const original = out[idx];
+  if ((original & 1) === bit) return;
+  if (original <= 0) out[idx] = 1;
+  else if (original >= 255) out[idx] = 254;
+  else {
+    const neighborSum = out[base] + out[base+1] + out[base+2];
+    out[idx] = original + ((neighborSum & 1) ? 1 : -1);
+  }
+}
+
+function encodeDataStealth(imageData, bytes) {
+  const totalPx = imageData.width * imageData.height;
+  const lenHi = bytes.length >> 8, lenLo = bytes.length & 0xff;
+  const cw1 = rsEncode(new Uint8Array([STEALTH_MAGIC[0], STEALTH_MAGIC[1], STEALTH_MAGIC[2], lenHi, lenLo]), STEALTH_ECC);
+  const cw2 = rsEncode(bytes, STEALTH_ECC);
+  const allBytes = new Uint8Array(cw1.length + cw2.length);
+  allBytes.set(cw1); allBytes.set(cw2, cw1.length);
+  const totalBits = allBytes.length * 8;
+  const neededPx = totalBits * STEALTH_SPREAD;
+  if (neededPx > totalPx) throw new Error(`Image too small for Stealth Mode. Need ${neededPx} pixels. Try a larger image, shorter message, or Robust Mode.`);
+  const order = buildShuffle(imageData.width * imageData.height, STEALTH_SEED);
+  const out = new Uint8ClampedArray(imageData.data);
+  for (let bitIdx = 0; bitIdx < totalBits; bitIdx++) {
+    const bit = (allBytes[bitIdx >> 3] >> (7 - (bitIdx & 7))) & 1;
+    for (let s = 0; s < STEALTH_SPREAD; s++) {
+      const base = order[bitIdx * STEALTH_SPREAD + s] * 4;
+      setChannelLSBColorMatched(out, base, 2, bit);
+    }
+  }
+  return out;
+}
+
+function readStealthBit(data, order, bitIdx) {
+  let ones = 0;
+  for (let s = 0; s < STEALTH_SPREAD; s++) {
+    const base = order[bitIdx * STEALTH_SPREAD + s] * 4;
+    ones += data[base + 2] & 1;
+  }
+  return ones > STEALTH_SPREAD / 2 ? 1 : 0;
+}
+
+function readStealthBitsRange(data, order, startBit, count) {
+  const bits = [];
+  for (let i = startBit; i < startBit + count; i++) bits.push(readStealthBit(data, order, i));
+  return bits;
+}
+
+function decodeDataStealth(imageData) {
+  const data = imageData.data;
+  const order = buildShuffle(imageData.width * imageData.height, STEALTH_SEED);
+  const cw1Len = 5 + STEALTH_ECC;
+  const raw = bitsToBytes(readStealthBitsRange(data, order, 0, cw1Len * 8));
+  let hdr;
+  try { hdr = rsDecode(raw, STEALTH_ECC); }
+  catch(e) { throw new Error('No Stealth Mode data found or header is too corrupted.'); }
+  if (hdr[0] !== STEALTH_MAGIC[0] || hdr[1] !== STEALTH_MAGIC[1] || hdr[2] !== STEALTH_MAGIC[2]) throw new Error('No Stealth Mode data found.');
+  const msgLen = (hdr[3] << 8) | hdr[4];
+  if (msgLen < 0 || msgLen > 200000) throw new Error('Corrupt Stealth Mode length field: ' + msgLen);
+  const cw2StartBit = cw1Len * 8;
+  const cw2Len = msgLen + STEALTH_ECC;
+  const raw2 = bitsToBytes(readStealthBitsRange(data, order, cw2StartBit, cw2Len * 8));
+  let msg;
+  try { msg = rsDecode(raw2, STEALTH_ECC); }
+  catch(e) { throw new Error('Stealth Mode message too corrupted to recover. Use the original PNG when possible.'); }
+  return new TextDecoder().decode(msg);
+}
+
+
+// ─── JPEG Mode: experimental DCT frequency-domain embedding ────────────────
+// This mode is designed to survive moderate JPEG conversion better than LSB
+// methods. It encodes bits by comparing two mid-frequency DCT coefficients
+// inside 8x8 luminance blocks. It is experimental and supports shorter
+// messages than Robust Mode because it uses one bit per block, repeated.
+
+const DCT_MAGIC = [0x44, 0x43, 0x54]; // "DCT"
+const DCT_ECC = 32;
+const DCT_SPREAD = 9;
+const DCT_SEED = 0xD071C0DE;
+const DCT_MARGIN = 28;
+
+const DCT_COS = Array.from({length: 8}, (_, u) =>
+  Array.from({length: 8}, (_, x) => Math.cos(((2*x + 1) * u * Math.PI) / 16))
+);
+const DCT_ALPHA = Array.from({length: 8}, (_, u) => u === 0 ? 1 / Math.sqrt(2) : 1);
+
+function rgbToY(r, g, b) {
+  return 0.299*r + 0.587*g + 0.114*b;
+}
+
+function shiftRgbLuma(out, base, delta) {
+  out[base]   = clamp8(out[base]   + delta);
+  out[base+1] = clamp8(out[base+1] + delta);
+  out[base+2] = clamp8(out[base+2] + delta);
+}
+
+function dct8(block) {
+  const coeff = Array.from({length: 8}, () => Array(8).fill(0));
+  for (let u = 0; u < 8; u++) {
+    for (let v = 0; v < 8; v++) {
+      let sum = 0;
+      for (let x = 0; x < 8; x++) {
+        for (let y = 0; y < 8; y++) {
+          sum += block[x][y] * DCT_COS[u][x] * DCT_COS[v][y];
+        }
+      }
+      coeff[u][v] = 0.25 * DCT_ALPHA[u] * DCT_ALPHA[v] * sum;
+    }
+  }
+  return coeff;
+}
+
+function idct8(coeff) {
+  const block = Array.from({length: 8}, () => Array(8).fill(0));
+  for (let x = 0; x < 8; x++) {
+    for (let y = 0; y < 8; y++) {
+      let sum = 0;
+      for (let u = 0; u < 8; u++) {
+        for (let v = 0; v < 8; v++) {
+          sum += DCT_ALPHA[u] * DCT_ALPHA[v] * coeff[u][v] * DCT_COS[u][x] * DCT_COS[v][y];
+        }
+      }
+      block[x][y] = 0.25 * sum;
+    }
+  }
+  return block;
+}
+
+function buildBlockOrder(width, height, seed) {
+  const bw = Math.floor(width / 8);
+  const bh = Math.floor(height / 8);
+  const n = bw * bh;
+  const order = buildShuffle(n, seed);
+  return { order, bw, bh };
+}
+
+function getYBlock(data, width, blockIndex, bw) {
+  const bx = blockIndex % bw;
+  const by = Math.floor(blockIndex / bw);
+  const block = Array.from({length: 8}, () => Array(8).fill(0));
+  for (let y = 0; y < 8; y++) {
+    for (let x = 0; x < 8; x++) {
+      const px = ((by * 8 + y) * width + (bx * 8 + x)) * 4;
+      block[x][y] = rgbToY(data[px], data[px+1], data[px+2]) - 128;
+    }
+  }
+  return block;
+}
+
+function applyYBlockDelta(out, originalData, width, blockIndex, bw, newYBlock) {
+  const bx = blockIndex % bw;
+  const by = Math.floor(blockIndex / bw);
+  for (let y = 0; y < 8; y++) {
+    for (let x = 0; x < 8; x++) {
+      const base = ((by * 8 + y) * width + (bx * 8 + x)) * 4;
+      const oldY = rgbToY(originalData[base], originalData[base+1], originalData[base+2]) - 128;
+      const newY = newYBlock[x][y];
+      // Limit per-pixel adjustment to reduce visible blocking.
+      const delta = Math.max(-14, Math.min(14, newY - oldY));
+      shiftRgbLuma(out, base, delta);
+    }
+  }
+}
+
+function encodeDctBit(out, originalData, width, blockIndex, bw, bit) {
+  const block = getYBlock(out, width, blockIndex, bw);
+  const coeff = dct8(block);
+
+  // Mid-frequency pair. Avoid low-frequency DC and very high frequencies.
+  const a = coeff[3][2];
+  const b = coeff[2][3];
+
+  if (bit === 1) {
+    if (a <= b + DCT_MARGIN) {
+      const mid = (a + b) / 2;
+      coeff[3][2] = mid + DCT_MARGIN / 2;
+      coeff[2][3] = mid - DCT_MARGIN / 2;
+    }
+  } else {
+    if (b <= a + DCT_MARGIN) {
+      const mid = (a + b) / 2;
+      coeff[3][2] = mid - DCT_MARGIN / 2;
+      coeff[2][3] = mid + DCT_MARGIN / 2;
+    }
+  }
+
+  const newBlock = idct8(coeff);
+  applyYBlockDelta(out, originalData, width, blockIndex, bw, newBlock);
+}
+
+function readDctBit(data, width, blockIndex, bw) {
+  const block = getYBlock(data, width, blockIndex, bw);
+  const coeff = dct8(block);
+  return coeff[3][2] > coeff[2][3] ? 1 : 0;
+}
+
+function encodeDataDCT(imageData, bytes) {
+  const width = imageData.width, height = imageData.height;
+  const { order, bw, bh } = buildBlockOrder(width, height, DCT_SEED);
+  const totalBlocks = bw * bh;
+
+  const lenHi = bytes.length >> 8, lenLo = bytes.length & 0xff;
+  const cw1 = rsEncode(new Uint8Array([DCT_MAGIC[0], DCT_MAGIC[1], DCT_MAGIC[2], lenHi, lenLo]), DCT_ECC);
+  const cw2 = rsEncode(bytes, DCT_ECC);
+  const allBytes = new Uint8Array(cw1.length + cw2.length);
+  allBytes.set(cw1); allBytes.set(cw2, cw1.length);
+
+  const totalBits = allBytes.length * 8;
+  const neededBlocks = totalBits * DCT_SPREAD;
+  if (neededBlocks > totalBlocks) throw new Error(
+    `Image too small for JPEG Mode. Need ${neededBlocks} 8×8 blocks. Try a larger image, shorter message, or Robust Mode.`);
+
+  const out = new Uint8ClampedArray(imageData.data);
+  const original = new Uint8ClampedArray(imageData.data);
+
+  for (let bitIdx = 0; bitIdx < totalBits; bitIdx++) {
+    const bit = (allBytes[bitIdx >> 3] >> (7 - (bitIdx & 7))) & 1;
+    for (let s = 0; s < DCT_SPREAD; s++) {
+      encodeDctBit(out, original, width, order[bitIdx * DCT_SPREAD + s], bw, bit);
+    }
+  }
+  return out;
+}
+
+function readDctBitsRange(data, width, order, bw, startBit, count) {
+  const bits = [];
+  for (let i = startBit; i < startBit + count; i++) {
+    let ones = 0;
+    for (let s = 0; s < DCT_SPREAD; s++) {
+      ones += readDctBit(data, width, order[i * DCT_SPREAD + s], bw);
+    }
+    bits.push(ones > DCT_SPREAD / 2 ? 1 : 0);
+  }
+  return bits;
+}
+
+function decodeDataDCT(imageData) {
+  const width = imageData.width, height = imageData.height;
+  const { order, bw, bh } = buildBlockOrder(width, height, DCT_SEED);
+
+  const cw1Len = 5 + DCT_ECC;
+  const raw = bitsToBytes(readDctBitsRange(imageData.data, width, order, bw, 0, cw1Len * 8));
+
+  let hdr;
+  try { hdr = rsDecode(raw, DCT_ECC); }
+  catch(e) { throw new Error('No JPEG Mode data found or DCT header is too corrupted.'); }
+
+  if (hdr[0] !== DCT_MAGIC[0] || hdr[1] !== DCT_MAGIC[1] || hdr[2] !== DCT_MAGIC[2]) {
+    throw new Error('No JPEG Mode data found.');
+  }
+
+  const msgLen = (hdr[3] << 8) | hdr[4];
+  if (msgLen < 0 || msgLen > 200000) throw new Error('Corrupt JPEG Mode length field: ' + msgLen);
+
+  const cw2StartBit = cw1Len * 8;
+  const cw2Len = msgLen + DCT_ECC;
+  const raw2 = bitsToBytes(readDctBitsRange(imageData.data, width, order, bw, cw2StartBit, cw2Len * 8));
+
+  let msg;
+  try { msg = rsDecode(raw2, DCT_ECC); }
+  catch(e) { throw new Error('JPEG Mode message too corrupted to recover. Try a larger image, shorter message, or higher JPEG quality.'); }
+
+  return new TextDecoder().decode(msg);
+}
+
+
+
+// ─── Resize Lab: experimental tile-based resize-resilient embedding ─────────
+// This mode encodes bits as average luminance differences between paired
+// regions inside large tiles. Because the signal is stored at a regional level,
+// it can survive moderate resizing better than exact pixel-position methods.
+// Tradeoff: very low capacity and somewhat more visible changes.
+
+const RESIZE_MAGIC = [0x52, 0x53, 0x5A]; // "RSZ"
+const RESIZE_ECC = 24;
+const RESIZE_TILE = 64;
+const RESIZE_MARGIN = 10;
+const RESIZE_SEED = 0xA11CE501;
+const RESIZE_MAX_BYTES = 64;
+
+function getTileGrid(width, height, tileSize) {
+  return {
+    tw: Math.floor(width / tileSize),
+    th: Math.floor(height / tileSize),
+    n: Math.floor(width / tileSize) * Math.floor(height / tileSize)
+  };
+}
+
+function avgTileHalfY(data, width, height, tileIndex, tileSize, side, tw) {
+  const tx = tileIndex % tw;
+  const ty = Math.floor(tileIndex / tw);
+  const x0 = tx * tileSize;
+  const y0 = ty * tileSize;
+  const half = Math.floor(tileSize / 2);
+  const xs = side === 0 ? x0 : x0 + half;
+  const xe = side === 0 ? x0 + half : x0 + tileSize;
+  let sum = 0, count = 0;
+
+  for (let y = y0; y < y0 + tileSize && y < height; y++) {
+    for (let x = xs; x < xe && x < width; x++) {
+      const base = (y * width + x) * 4;
+      sum += rgbToY(data[base], data[base+1], data[base+2]);
+      count++;
+    }
+  }
+  return count ? sum / count : 0;
+}
+
+function adjustTileHalfY(out, width, height, tileIndex, tileSize, side, tw, delta) {
+  const tx = tileIndex % tw;
+  const ty = Math.floor(tileIndex / tw);
+  const x0 = tx * tileSize;
+  const y0 = ty * tileSize;
+  const half = Math.floor(tileSize / 2);
+  const xs = side === 0 ? x0 : x0 + half;
+  const xe = side === 0 ? x0 + half : x0 + tileSize;
+
+  for (let y = y0; y < y0 + tileSize && y < height; y++) {
+    for (let x = xs; x < xe && x < width; x++) {
+      const base = (y * width + x) * 4;
+      shiftRgbLuma(out, base, delta);
+    }
+  }
+}
+
+function encodeResizeBit(out, width, height, tileIndex, tw, bit) {
+  const left = avgTileHalfY(out, width, height, tileIndex, RESIZE_TILE, 0, tw);
+  const right = avgTileHalfY(out, width, height, tileIndex, RESIZE_TILE, 1, tw);
+  const diff = left - right;
+
+  if (bit === 1 && diff < RESIZE_MARGIN) {
+    const d = Math.min(8, (RESIZE_MARGIN - diff) / 2);
+    adjustTileHalfY(out, width, height, tileIndex, RESIZE_TILE, 0, tw, d);
+    adjustTileHalfY(out, width, height, tileIndex, RESIZE_TILE, 1, tw, -d);
+  } else if (bit === 0 && diff > -RESIZE_MARGIN) {
+    const d = Math.min(8, (RESIZE_MARGIN + diff) / 2);
+    adjustTileHalfY(out, width, height, tileIndex, RESIZE_TILE, 0, tw, -d);
+    adjustTileHalfY(out, width, height, tileIndex, RESIZE_TILE, 1, tw, d);
+  }
+}
+
+function readResizeBit(data, width, height, tileIndex, tw) {
+  const left = avgTileHalfY(data, width, height, tileIndex, RESIZE_TILE, 0, tw);
+  const right = avgTileHalfY(data, width, height, tileIndex, RESIZE_TILE, 1, tw);
+  return left > right ? 1 : 0;
+}
+
+function resizeBitsToBytes(bits) {
+  return bitsToBytes(bits);
+}
+
+function encodeDataResize(imageData, bytes) {
+  if (bytes.length > RESIZE_MAX_BYTES) {
+    throw new Error(`Resize Lab supports short messages only. Max ${RESIZE_MAX_BYTES} bytes. Try a shorter message or JPEG Resilient mode.`);
+  }
+
+  const width = imageData.width, height = imageData.height;
+  const grid = getTileGrid(width, height, RESIZE_TILE);
+  if (grid.n < 16) throw new Error('Image too small for Resize Lab. Try an image at least 512×512.');
+
+  const lenHi = bytes.length >> 8, lenLo = bytes.length & 0xff;
+  const payload = rsEncode(new Uint8Array([RESIZE_MAGIC[0], RESIZE_MAGIC[1], RESIZE_MAGIC[2], lenHi, lenLo, ...bytes]), RESIZE_ECC);
+  const totalBits = payload.length * 8;
+
+  if (totalBits > grid.n) {
+    throw new Error(`Image too small for Resize Lab. Need ${totalBits} tiles, but this image has ${grid.n}. Try a larger image or shorter message.`);
+  }
+
+  const order = buildShuffle(grid.n, RESIZE_SEED);
+  const out = new Uint8ClampedArray(imageData.data);
+
+  for (let bitIdx = 0; bitIdx < totalBits; bitIdx++) {
+    const bit = (payload[bitIdx >> 3] >> (7 - (bitIdx & 7))) & 1;
+    encodeResizeBit(out, width, height, order[bitIdx], grid.tw, bit);
+  }
+
+  return out;
+}
+
+function decodeDataResize(imageData) {
+  const width = imageData.width, height = imageData.height;
+  const grid = getTileGrid(width, height, RESIZE_TILE);
+  if (grid.n < 16) throw new Error('Image too small for Resize Lab decoding.');
+
+  const order = buildShuffle(grid.n, RESIZE_SEED);
+
+  // First decode enough bytes for maximum small payload + ECC.
+  // Because this mode is tile based, capacity is one bit per tile.
+  const maxBytesPossible = Math.floor(grid.n / 8);
+  const readBytes = Math.min(maxBytesPossible, 5 + RESIZE_MAX_BYTES + RESIZE_ECC);
+  const bits = [];
+  for (let i = 0; i < readBytes * 8; i++) {
+    bits.push(readResizeBit(imageData.data, width, height, order[i], grid.tw));
+  }
+  const raw = resizeBitsToBytes(bits);
+
+  let dec;
+  try { dec = rsDecode(raw, RESIZE_ECC); }
+  catch(e) { throw new Error('No Resize Lab data found or payload is too corrupted.'); }
+
+  if (dec[0] !== RESIZE_MAGIC[0] || dec[1] !== RESIZE_MAGIC[1] || dec[2] !== RESIZE_MAGIC[2]) {
+    throw new Error('No Resize Lab data found.');
+  }
+
+  const msgLen = (dec[3] << 8) | dec[4];
+  if (msgLen < 0 || msgLen > RESIZE_MAX_BYTES || dec.length < 5 + msgLen) {
+    throw new Error('Corrupt Resize Lab length field.');
+  }
+
+  return new TextDecoder().decode(dec.slice(5, 5 + msgLen));
+}
+
+
+
+// ─── Resize Lab v2: normalized grid-based resize-resilient embedding ───────
+// Override of the earlier Resize Lab. This version does NOT use fixed 64×64
+// pixel tiles. Instead, it uses a normalized grid that scales with the current
+// image size, so the same logical tile locations can be found after resizing.
+// This is still experimental and low-capacity, but should survive moderate
+// resizing much better than fixed-pixel tiles.
+
+const RESIZE_GRID_X = 32;
+const RESIZE_GRID_Y = 32;
+const RESIZE_ECC_V2 = 16;
+const RESIZE_MAX_BYTES_V2 = 48;
+const RESIZE_MARGIN_V2 = 14;
+const RESIZE_SEED_V2 = 0xA11CE502;
+
+function resizeGridCellBounds(width, height, cellIndex) {
+  const gx = cellIndex % RESIZE_GRID_X;
+  const gy = Math.floor(cellIndex / RESIZE_GRID_X);
+
+  const x0 = Math.floor(gx * width / RESIZE_GRID_X);
+  const x1 = Math.floor((gx + 1) * width / RESIZE_GRID_X);
+  const y0 = Math.floor(gy * height / RESIZE_GRID_Y);
+  const y1 = Math.floor((gy + 1) * height / RESIZE_GRID_Y);
+
+  return { x0, x1, y0, y1 };
+}
+
+function avgResizeCellHalfY(data, width, height, cellIndex, side) {
+  const { x0, x1, y0, y1 } = resizeGridCellBounds(width, height, cellIndex);
+  const mid = Math.floor((x0 + x1) / 2);
+  const xs = side === 0 ? x0 : mid;
+  const xe = side === 0 ? mid : x1;
+
+  let sum = 0, count = 0;
+  for (let y = y0; y < y1; y++) {
+    for (let x = xs; x < xe; x++) {
+      const base = (y * width + x) * 4;
+      sum += rgbToY(data[base], data[base+1], data[base+2]);
+      count++;
+    }
+  }
+  return count ? sum / count : 0;
+}
+
+function adjustResizeCellHalfY(out, width, height, cellIndex, side, delta) {
+  const { x0, x1, y0, y1 } = resizeGridCellBounds(width, height, cellIndex);
+  const mid = Math.floor((x0 + x1) / 2);
+  const xs = side === 0 ? x0 : mid;
+  const xe = side === 0 ? mid : x1;
+
+  for (let y = y0; y < y1; y++) {
+    for (let x = xs; x < xe; x++) {
+      const base = (y * width + x) * 4;
+      shiftRgbLuma(out, base, delta);
+    }
+  }
+}
+
+function encodeResizeBit(out, width, height, cellIndex, ignoredTw, bit) {
+  const left = avgResizeCellHalfY(out, width, height, cellIndex, 0);
+  const right = avgResizeCellHalfY(out, width, height, cellIndex, 1);
+  const diff = left - right;
+
+  if (bit === 1 && diff < RESIZE_MARGIN_V2) {
+    const d = Math.min(10, (RESIZE_MARGIN_V2 - diff) / 2);
+    adjustResizeCellHalfY(out, width, height, cellIndex, 0, d);
+    adjustResizeCellHalfY(out, width, height, cellIndex, 1, -d);
+  } else if (bit === 0 && diff > -RESIZE_MARGIN_V2) {
+    const d = Math.min(10, (RESIZE_MARGIN_V2 + diff) / 2);
+    adjustResizeCellHalfY(out, width, height, cellIndex, 0, -d);
+    adjustResizeCellHalfY(out, width, height, cellIndex, 1, d);
+  }
+}
+
+function readResizeBit(data, width, height, cellIndex, ignoredTw) {
+  const left = avgResizeCellHalfY(data, width, height, cellIndex, 0);
+  const right = avgResizeCellHalfY(data, width, height, cellIndex, 1);
+  return left > right ? 1 : 0;
+}
+
+function encodeDataResize(imageData, bytes) {
+  if (bytes.length > RESIZE_MAX_BYTES_V2) {
+    throw new Error(`Resize Lab supports short messages only. Max ${RESIZE_MAX_BYTES_V2} bytes. Try a shorter message or JPEG Resilient mode.`);
+  }
+
+  const width = imageData.width, height = imageData.height;
+  if (width < 512 || height < 512) {
+    throw new Error('Resize Lab works best with images at least 512×512.');
+  }
+
+  const cells = RESIZE_GRID_X * RESIZE_GRID_Y;
+  const lenHi = bytes.length >> 8, lenLo = bytes.length & 0xff;
+  const payload = rsEncode(new Uint8Array([RESIZE_MAGIC[0], RESIZE_MAGIC[1], RESIZE_MAGIC[2], lenHi, lenLo, ...bytes]), RESIZE_ECC_V2);
+  const totalBits = payload.length * 8;
+
+  if (totalBits > cells) {
+    throw new Error(`Image too small for Resize Lab payload. Need ${totalBits} cells, but this mode has ${cells}. Use a shorter message.`);
+  }
+
+  const order = buildShuffle(cells, RESIZE_SEED_V2);
+  const out = new Uint8ClampedArray(imageData.data);
+
+  for (let bitIdx = 0; bitIdx < totalBits; bitIdx++) {
+    const bit = (payload[bitIdx >> 3] >> (7 - (bitIdx & 7))) & 1;
+    encodeResizeBit(out, width, height, order[bitIdx], 0, bit);
+  }
+
+  return out;
+}
+
+function decodeDataResize(imageData) {
+  const width = imageData.width, height = imageData.height;
+  if (width < 256 || height < 256) {
+    throw new Error('Image too small for Resize Lab decoding.');
+  }
+
+  const cells = RESIZE_GRID_X * RESIZE_GRID_Y;
+  const order = buildShuffle(cells, RESIZE_SEED_V2);
+
+  // Read the full normalized grid capacity, then let Reed-Solomon recover.
+  const bits = [];
+  for (let i = 0; i < cells; i++) {
+    bits.push(readResizeBit(imageData.data, width, height, order[i], 0));
+  }
+
+  const raw = bitsToBytes(bits);
+  const readBytes = Math.min(raw.length, 5 + RESIZE_MAX_BYTES_V2 + RESIZE_ECC_V2);
+  const sliced = raw.slice(0, readBytes);
+
+  let dec;
+  try { dec = rsDecode(sliced, RESIZE_ECC_V2); }
+  catch(e) { throw new Error('No Resize Lab data found or payload is too corrupted.'); }
+
+  if (dec[0] !== RESIZE_MAGIC[0] || dec[1] !== RESIZE_MAGIC[1] || dec[2] !== RESIZE_MAGIC[2]) {
+    throw new Error('No Resize Lab data found.');
+  }
+
+  const msgLen = (dec[3] << 8) | dec[4];
+  if (msgLen < 0 || msgLen > RESIZE_MAX_BYTES_V2 || dec.length < 5 + msgLen) {
+    throw new Error('Corrupt Resize Lab length field.');
+  }
+
+  return new TextDecoder().decode(dec.slice(5, 5 + msgLen));
+}
+
+
+
+// ─── Resize Lab v4: fixed header + exact payload decode ─────────────────────
+// This override fixes the Resize Lab decoding failure in v0.4.
+// Previous Resize Lab versions encoded a variable-length RS payload but decoded
+// a larger fixed-size block, causing random trailing cells to break RS decoding.
+// v3 stores a fixed-size header first, then reads exactly msgLen + ECC bytes.
+
+const RESIZE_ECC_V3 = 16;
+const RESIZE_MAX_BYTES_V3 = 48;
+const RESIZE_SEED_V3 = 0xA11CE503;
+const RESIZE_HEADER_LEN_V3 = 5 + RESIZE_ECC_V3; // magic(3) + len(2) + ECC
+
+function encodeDataResize(imageData, bytes) {
+  if (bytes.length > RESIZE_MAX_BYTES_V3) {
+    throw new Error(`Resize Lab supports short messages only. Max ${RESIZE_MAX_BYTES_V3} bytes. Try a shorter message or JPEG Resilient mode.`);
+  }
+
+  const width = imageData.width, height = imageData.height;
+  if (width < 512 || height < 512) {
+    throw new Error('Resize Lab works best with images at least 512×512.');
+  }
+
+  const cells = RESIZE_GRID_X * RESIZE_GRID_Y;
+  const lenHi = bytes.length >> 8, lenLo = bytes.length & 0xff;
+
+  const header = rsEncode(new Uint8Array([RESIZE_MAGIC[0], RESIZE_MAGIC[1], RESIZE_MAGIC[2], lenHi, lenLo]), RESIZE_ECC_V3);
+  const body = rsEncode(bytes, RESIZE_ECC_V3);
+
+  const allBytes = new Uint8Array(header.length + body.length);
+  allBytes.set(header);
+  allBytes.set(body, header.length);
+
+  const totalBits = allBytes.length * 8;
+  if (totalBits > cells) {
+    throw new Error(`Image too small for Resize Lab payload. Need ${totalBits} cells, but this mode has ${cells}. Use a shorter message.`);
+  }
+
+  const order = buildShuffle(cells, RESIZE_SEED_V3);
+  const out = new Uint8ClampedArray(imageData.data);
+
+  for (let bitIdx = 0; bitIdx < totalBits; bitIdx++) {
+    const bit = (allBytes[bitIdx >> 3] >> (7 - (bitIdx & 7))) & 1;
+    encodeResizeBit(out, width, height, order[bitIdx], 0, bit);
+  }
+
+  return out;
+}
+
+function readResizeBitsAsBytes(imageData, order, startBit, bitCount) {
+  const bits = [];
+  const width = imageData.width, height = imageData.height;
+  for (let i = startBit; i < startBit + bitCount; i++) {
+    bits.push(readResizeBit(imageData.data, width, height, order[i], 0));
+  }
+  return bitsToBytes(bits);
+}
+
+function decodeDataResize(imageData) {
+  const width = imageData.width, height = imageData.height;
+  if (width < 256 || height < 256) {
+    throw new Error('Image too small for Resize Lab decoding.');
+  }
+
+  const cells = RESIZE_GRID_X * RESIZE_GRID_Y;
+  const order = buildShuffle(cells, RESIZE_SEED_V3);
+
+  const headerBits = RESIZE_HEADER_LEN_V3 * 8;
+  if (headerBits > cells) throw new Error('Image too small for Resize Lab header.');
+
+  const rawHeader = readResizeBitsAsBytes(imageData, order, 0, headerBits);
+
+  let hdr;
+  try { hdr = rsDecode(rawHeader, RESIZE_ECC_V3); }
+  catch(e) { throw new Error('No Resize Lab data found or header is too corrupted.'); }
+
+  if (hdr[0] !== RESIZE_MAGIC[0] || hdr[1] !== RESIZE_MAGIC[1] || hdr[2] !== RESIZE_MAGIC[2]) {
+    throw new Error('No Resize Lab data found.');
+  }
+
+  const msgLen = (hdr[3] << 8) | hdr[4];
+  if (msgLen < 0 || msgLen > RESIZE_MAX_BYTES_V3) {
+    throw new Error('Corrupt Resize Lab length field.');
+  }
+
+  const bodyLen = msgLen + RESIZE_ECC_V3;
+  const bodyBits = bodyLen * 8;
+  const bodyStart = headerBits;
+  if (bodyStart + bodyBits > cells) {
+    throw new Error('Resize Lab payload exceeds available grid capacity.');
+  }
+
+  const rawBody = readResizeBitsAsBytes(imageData, order, bodyStart, bodyBits);
+
+  let body;
+  try { body = rsDecode(rawBody, RESIZE_ECC_V3); }
+  catch(e) { throw new Error('Resize Lab message too corrupted to recover. Try the exact downloaded PNG, less resizing, or a shorter message.'); }
+
+  return new TextDecoder().decode(body);
+}
+
+async function runResizeSelfTest() {
+  if (!encImg) return;
+  const text = document.getElementById('enc-text').value.trim() || 'PlaneSight resize test';
+  const dbg = document.getElementById('debug-out');
+  dbg.style.display = 'block';
+  dbg.textContent = 'Running Resize Lab self-test...';
+  await new Promise(r => setTimeout(r, 10));
+
+  const log = [];
+  try {
+    const msgBytes = new TextEncoder().encode(text);
+    log.push(`Message: "${text}" (${msgBytes.length} bytes)`);
+    const encoded = encodeDataResize(encImg, msgBytes);
+    log.push('Resize Lab encode OK');
+    const testImg = new ImageData(encoded, encImg.width, encImg.height);
+    const decoded = decodeDataResize(testImg);
+    log.push(`Resize Lab decode OK: "${decoded}"`);
+    log.push(decoded === text ? '✓ RESIZE LAB ROUND-TRIP PASSED' : `✗ MISMATCH: got "${decoded}"`);
+  } catch(e) {
+    log.push(`✗ ERROR: ${e.message}`);
+  }
+  dbg.textContent = log.join('\n');
+}
+
+
+
+// ─── Resize Lab v4: stronger exact-PNG tile encoding ────────────────────────
+// This override prioritizes reliable round-trip decoding of the downloaded PNG.
+// It is intentionally stronger and may be more visible than PNG Stealth.
+// It is a research mode, not yet a polished imperceptible steganography mode.
+
+const RESIZE_ECC_V4 = 16;
+const RESIZE_MAX_BYTES_V4 = 48;
+const RESIZE_SEED_V4 = 0xA11CE504;
+const RESIZE_HEADER_LEN_V4 = 5 + RESIZE_ECC_V4;
+const RESIZE_MARGIN_V4 = 28;
+const RESIZE_MAX_DELTA_V4 = 48;
+
+function encodeResizeBit(out, width, height, cellIndex, ignoredTw, bit) {
+  const left = avgResizeCellHalfY(out, width, height, cellIndex, 0);
+  const right = avgResizeCellHalfY(out, width, height, cellIndex, 1);
+  const diff = left - right;
+
+  const target = bit === 1 ? RESIZE_MARGIN_V4 : -RESIZE_MARGIN_V4;
+  let delta = (target - diff) / 2;
+
+  // Stronger than earlier versions. This makes exact PNG round-trip much more reliable,
+  // though it can create visible tile artifacts.
+  delta = Math.max(-RESIZE_MAX_DELTA_V4, Math.min(RESIZE_MAX_DELTA_V4, delta));
+
+  adjustResizeCellHalfY(out, width, height, cellIndex, 0, delta);
+  adjustResizeCellHalfY(out, width, height, cellIndex, 1, -delta);
+}
+
+function readResizeBit(data, width, height, cellIndex, ignoredTw) {
+  const left = avgResizeCellHalfY(data, width, height, cellIndex, 0);
+  const right = avgResizeCellHalfY(data, width, height, cellIndex, 1);
+  return left > right ? 1 : 0;
+}
+
+function encodeDataResize(imageData, bytes) {
+  if (bytes.length > RESIZE_MAX_BYTES_V4) {
+    throw new Error(`Resize Lab supports short messages only. Max ${RESIZE_MAX_BYTES_V4} bytes. Try a shorter message or JPEG Resilient mode.`);
+  }
+
+  const width = imageData.width, height = imageData.height;
+  if (width < 512 || height < 512) {
+    throw new Error('Resize Lab works best with images at least 512×512.');
+  }
+
+  const cells = RESIZE_GRID_X * RESIZE_GRID_Y;
+  const lenHi = bytes.length >> 8, lenLo = bytes.length & 0xff;
+
+  const header = rsEncode(new Uint8Array([RESIZE_MAGIC[0], RESIZE_MAGIC[1], RESIZE_MAGIC[2], lenHi, lenLo]), RESIZE_ECC_V4);
+  const body = rsEncode(bytes, RESIZE_ECC_V4);
+
+  const allBytes = new Uint8Array(header.length + body.length);
+  allBytes.set(header);
+  allBytes.set(body, header.length);
+
+  const totalBits = allBytes.length * 8;
+  if (totalBits > cells) {
+    throw new Error(`Image too small for Resize Lab payload. Need ${totalBits} cells, but this mode has ${cells}. Use a shorter message.`);
+  }
+
+  const order = buildShuffle(cells, RESIZE_SEED_V4);
+  const out = new Uint8ClampedArray(imageData.data);
+
+  // Two passes helps when earlier bit edits slightly affect neighboring averages.
+  for (let pass = 0; pass < 2; pass++) {
+    for (let bitIdx = 0; bitIdx < totalBits; bitIdx++) {
+      const bit = (allBytes[bitIdx >> 3] >> (7 - (bitIdx & 7))) & 1;
+      encodeResizeBit(out, width, height, order[bitIdx], 0, bit);
+    }
+  }
+
+  return out;
+}
+
+function readResizeBitsAsBytesV4(imageData, order, startBit, bitCount) {
+  const bits = [];
+  const width = imageData.width, height = imageData.height;
+  for (let i = startBit; i < startBit + bitCount; i++) {
+    bits.push(readResizeBit(imageData.data, width, height, order[i], 0));
+  }
+  return bitsToBytes(bits);
+}
+
+function decodeDataResize(imageData) {
+  const width = imageData.width, height = imageData.height;
+  if (width < 256 || height < 256) {
+    throw new Error('Image too small for Resize Lab decoding.');
+  }
+
+  const cells = RESIZE_GRID_X * RESIZE_GRID_Y;
+  const order = buildShuffle(cells, RESIZE_SEED_V4);
+
+  const headerBits = RESIZE_HEADER_LEN_V4 * 8;
+  if (headerBits > cells) throw new Error('Image too small for Resize Lab header.');
+
+  const rawHeader = readResizeBitsAsBytesV4(imageData, order, 0, headerBits);
+
+  let hdr;
+  try { hdr = rsDecode(rawHeader, RESIZE_ECC_V4); }
+  catch(e) { throw new Error('No Resize Lab data found or header is too corrupted.'); }
+
+  if (hdr[0] !== RESIZE_MAGIC[0] || hdr[1] !== RESIZE_MAGIC[1] || hdr[2] !== RESIZE_MAGIC[2]) {
+    throw new Error('No Resize Lab data found.');
+  }
+
+  const msgLen = (hdr[3] << 8) | hdr[4];
+  if (msgLen < 0 || msgLen > RESIZE_MAX_BYTES_V4) {
+    throw new Error('Corrupt Resize Lab length field.');
+  }
+
+  const bodyLen = msgLen + RESIZE_ECC_V4;
+  const bodyBits = bodyLen * 8;
+  const bodyStart = headerBits;
+  if (bodyStart + bodyBits > cells) {
+    throw new Error('Resize Lab payload exceeds available grid capacity.');
+  }
+
+  const rawBody = readResizeBitsAsBytesV4(imageData, order, bodyStart, bodyBits);
+
+  let body;
+  try { body = rsDecode(rawBody, RESIZE_ECC_V4); }
+  catch(e) { throw new Error('Resize Lab message too corrupted to recover. Try the exact downloaded PNG, less resizing, or a shorter message.'); }
+
+  return new TextDecoder().decode(body);
+}
+
+async function runResizeSelfTest() {
+  if (!encImg) return;
+  const text = document.getElementById('enc-text').value.trim() || 'PlaneSight resize test';
+  const dbg = document.getElementById('debug-out');
+  dbg.style.display = 'block';
+  dbg.textContent = 'Running Resize Lab v4 self-test...';
+  await new Promise(r => setTimeout(r, 10));
+
+  const log = [];
+  try {
+    const msgBytes = new TextEncoder().encode(text);
+    log.push(`Message: "${text}" (${msgBytes.length} bytes)`);
+    const encoded = encodeDataResize(encImg, msgBytes);
+    log.push('Resize Lab encode OK');
+
+    const testImg = new ImageData(encoded, encImg.width, encImg.height);
+    const decoded = decodeDataResize(testImg);
+    log.push(`Resize Lab decode OK: "${decoded}"`);
+    log.push(decoded === text ? '✓ RESIZE LAB ROUND-TRIP PASSED' : `✗ MISMATCH: got "${decoded}"`);
+  } catch(e) {
+    log.push(`✗ ERROR: ${e.message}`);
+  }
+  dbg.textContent = log.join('\n');
+}
+
+
+
+// ─── Watermark Lab v1: subtle spread-spectrum correlation embedding ─────────
+// This mode is designed to be less visible to the human eye than Resize Lab.
+// It does NOT use blocks. Instead, each bit is spread across many pseudo-random
+// pixels using a secret deterministic +/- pattern. The encoder nudges the blue
+// channel by tiny amounts. The decoder regenerates the same pattern and checks
+// statistical correlation.
+//
+// Tradeoff: this is much less visually obvious, but it is mainly PNG-safe.
+// It may survive light processing, but JPEG, resizing, filters, screenshots,
+// and social-media recompression can still destroy the payload.
+
+const WM_MAGIC = [0x57, 0x4D, 0x4B]; // "WMK"
+const WM_ECC = 16;
+const WM_MAX_BYTES = 128;
+const WM_SEED = 0xB10ECAFE;
+const WM_SPREAD = 96;     // samples per bit
+const WM_DELTA = 2;       // tiny blue-channel nudge
+
+function wmSign(bitIdx, sampleIdx) {
+  // Deterministic +/- pattern independent of image content.
+  let x = (WM_SEED ^ Math.imul(bitIdx + 1, 0x45d9f3b) ^ Math.imul(sampleIdx + 1, 0x119de1f3)) >>> 0;
+  x ^= x >>> 16;
+  x = Math.imul(x, 0x7feb352d) >>> 0;
+  x ^= x >>> 15;
+  return (x & 1) ? 1 : -1;
+}
+
+function wmSetBlue(out, base, delta) {
+  out[base + 2] = Math.max(0, Math.min(255, out[base + 2] + delta));
+}
+
+function encodeDataWatermark(imageData, bytes) {
+  if (bytes.length > WM_MAX_BYTES) {
+    throw new Error(`Watermark Lab supports messages up to ${WM_MAX_BYTES} bytes. Try a shorter message.`);
+  }
+
+  const totalPx = imageData.width * imageData.height;
+  const lenHi = bytes.length >> 8, lenLo = bytes.length & 0xff;
+
+  const header = rsEncode(new Uint8Array([WM_MAGIC[0], WM_MAGIC[1], WM_MAGIC[2], lenHi, lenLo]), WM_ECC);
+  const body = rsEncode(bytes, WM_ECC);
+
+  const allBytes = new Uint8Array(header.length + body.length);
+  allBytes.set(header);
+  allBytes.set(body, header.length);
+
+  const totalBits = allBytes.length * 8;
+  const neededPx = totalBits * WM_SPREAD;
+  if (neededPx > totalPx) {
+    throw new Error(`Image too small for Watermark Lab. Need ${neededPx} pixels. Try a larger image or shorter message.`);
+  }
+
+  const order = buildShuffle(totalPx, WM_SEED);
+  const out = new Uint8ClampedArray(imageData.data);
+
+  for (let bitIdx = 0; bitIdx < totalBits; bitIdx++) {
+    const bit = (allBytes[bitIdx >> 3] >> (7 - (bitIdx & 7))) & 1;
+    const bitPolarity = bit ? 1 : -1;
+
+    for (let s = 0; s < WM_SPREAD; s++) {
+      const px = order[bitIdx * WM_SPREAD + s];
+      const base = px * 4;
+      const sign = wmSign(bitIdx, s);
+      wmSetBlue(out, base, bitPolarity * sign * WM_DELTA);
+    }
+  }
+
+  return out;
+}
+
+function readWatermarkBit(data, order, bitIdx) {
+  let score = 0;
+
+  for (let s = 0; s < WM_SPREAD; s++) {
+    const px = order[bitIdx * WM_SPREAD + s];
+    const base = px * 4;
+    const sign = wmSign(bitIdx, s);
+
+    // Use blue relative to red/green as a weak chroma signal. The random sign
+    // pattern causes natural image content to average out over many samples.
+    const chromaBlue = data[base + 2] - ((data[base] + data[base + 1]) / 2);
+    score += sign * chromaBlue;
+  }
+
+  return score > 0 ? 1 : 0;
+}
+
+function readWatermarkBitsAsBytes(imageData, order, startBit, bitCount) {
+  const bits = [];
+  for (let i = startBit; i < startBit + bitCount; i++) {
+    bits.push(readWatermarkBit(imageData.data, order, i));
+  }
+  return bitsToBytes(bits);
+}
+
+function decodeDataWatermark(imageData) {
+  const totalPx = imageData.width * imageData.height;
+  const order = buildShuffle(totalPx, WM_SEED);
+
+  const headerLen = 5 + WM_ECC;
+  const headerBits = headerLen * 8;
+
+  if (headerBits * WM_SPREAD > totalPx) {
+    throw new Error('Image too small for Watermark Lab header.');
+  }
+
+  const rawHeader = readWatermarkBitsAsBytes(imageData, order, 0, headerBits);
+
+  let hdr;
+  try { hdr = rsDecode(rawHeader, WM_ECC); }
+  catch(e) { throw new Error('No Watermark Lab data found or header is too corrupted.'); }
+
+  if (hdr[0] !== WM_MAGIC[0] || hdr[1] !== WM_MAGIC[1] || hdr[2] !== WM_MAGIC[2]) {
+    throw new Error('No Watermark Lab data found.');
+  }
+
+  const msgLen = (hdr[3] << 8) | hdr[4];
+  if (msgLen < 0 || msgLen > WM_MAX_BYTES) {
+    throw new Error('Corrupt Watermark Lab length field.');
+  }
+
+  const bodyLen = msgLen + WM_ECC;
+  const bodyBits = bodyLen * 8;
+  const bodyStart = headerBits;
+
+  if ((bodyStart + bodyBits) * WM_SPREAD > totalPx) {
+    throw new Error('Watermark Lab payload exceeds available image capacity.');
+  }
+
+  const rawBody = readWatermarkBitsAsBytes(imageData, order, bodyStart, bodyBits);
+
+  let body;
+  try { body = rsDecode(rawBody, WM_ECC); }
+  catch(e) { throw new Error('Watermark Lab message too corrupted to recover. Try the exact downloaded PNG or a shorter message.'); }
+
+  return new TextDecoder().decode(body);
+}
+
+async function runWatermarkSelfTest() {
+  if (!encImg) return;
+  const text = document.getElementById('enc-text').value.trim() || 'PlaneSight watermark test';
+  const dbg = document.getElementById('debug-out');
+  dbg.style.display = 'block';
+  dbg.textContent = 'Running Watermark Lab self-test...';
+  await new Promise(r => setTimeout(r, 10));
+
+  const log = [];
+  try {
+    const msgBytes = new TextEncoder().encode(text);
+    log.push(`Message: "${text}" (${msgBytes.length} bytes)`);
+    const encoded = encodeDataWatermark(encImg, msgBytes);
+    log.push('Watermark Lab encode OK');
+
+    const testImg = new ImageData(encoded, encImg.width, encImg.height);
+    const decoded = decodeDataWatermark(testImg);
+    log.push(`Watermark Lab decode OK: "${decoded}"`);
+    log.push(decoded === text ? '✓ WATERMARK LAB ROUND-TRIP PASSED' : `✗ MISMATCH: got "${decoded}"`);
+  } catch(e) {
+    log.push(`✗ ERROR: ${e.message}`);
+  }
+  dbg.textContent = log.join('\n');
+}
+
+
+
+// ─── Wavelet Lab v1: Haar DWT spread-spectrum embedding ─────────────────────
+// Experimental transform-domain mode. This embeds data into the HH wavelet band
+// of the blue channel using a pseudo-random spread-spectrum correlation signal.
+//
+// Why this direction:
+// - Pixel LSB methods are fragile.
+// - Tile methods are visible.
+// - Wavelet-domain watermarking is a more realistic path toward subtle,
+//   computer-detectable, moderately transform-resilient hiding.
+//
+// This first browser implementation is still experimental. Test exact PNG first.
+// It may survive very light resizing/JPEG, but it is not yet production-grade.
+
+const WV_MAGIC = [0x57, 0x56, 0x4C]; // "WVL"
+const WV_ECC = 16;
+const WV_MAX_BYTES = 96;
+const WV_SEED = 0x5A17E1E7;
+const WV_SPREAD = 96;     // coefficient samples per bit
+const WV_ALPHA = 3.0;     // coefficient nudge; increase for robustness, decrease for invisibility
+
+function largestEven(n) { return n - (n % 2); }
+
+function getBluePlane(imageData) {
+  const w = largestEven(imageData.width);
+  const h = largestEven(imageData.height);
+  const plane = new Float32Array(w * h);
+  const data = imageData.data;
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      plane[y * w + x] = data[(y * imageData.width + x) * 4 + 2];
+    }
+  }
+  return { plane, w, h };
+}
+
+function putBluePlane(imageData, bluePlane, w, h) {
+  const out = new Uint8ClampedArray(imageData.data);
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      out[(y * imageData.width + x) * 4 + 2] = clamp8(bluePlane[y * w + x]);
+    }
+  }
+  return out;
+}
+
+function haarDWT2D(input, w, h) {
+  const out = new Float32Array(input);
+  const temp = new Float32Array(Math.max(w, h));
+  const invSqrt2 = 1 / Math.sqrt(2);
+
+  // rows
+  for (let y = 0; y < h; y++) {
+    const row = y * w;
+    for (let x = 0; x < w; x += 2) {
+      const a = out[row + x];
+      const b = out[row + x + 1];
+      temp[x >> 1] = (a + b) * invSqrt2;
+      temp[(w >> 1) + (x >> 1)] = (a - b) * invSqrt2;
+    }
+    for (let x = 0; x < w; x++) out[row + x] = temp[x];
+  }
+
+  // columns
+  for (let x = 0; x < w; x++) {
+    for (let y = 0; y < h; y += 2) {
+      const a = out[y * w + x];
+      const b = out[(y + 1) * w + x];
+      temp[y >> 1] = (a + b) * invSqrt2;
+      temp[(h >> 1) + (y >> 1)] = (a - b) * invSqrt2;
+    }
+    for (let y = 0; y < h; y++) out[y * w + x] = temp[y];
+  }
+
+  return out;
+}
+
+function haarIDWT2D(coeff, w, h) {
+  const out = new Float32Array(coeff);
+  const temp = new Float32Array(Math.max(w, h));
+  const invSqrt2 = 1 / Math.sqrt(2);
+
+  // inverse columns
+  for (let x = 0; x < w; x++) {
+    for (let y = 0; y < h / 2; y++) {
+      const a = out[y * w + x];
+      const d = out[(h / 2 + y) * w + x];
+      temp[2 * y] = (a + d) * invSqrt2;
+      temp[2 * y + 1] = (a - d) * invSqrt2;
+    }
+    for (let y = 0; y < h; y++) out[y * w + x] = temp[y];
+  }
+
+  // inverse rows
+  for (let y = 0; y < h; y++) {
+    const row = y * w;
+    for (let x = 0; x < w / 2; x++) {
+      const a = out[row + x];
+      const d = out[row + (w / 2 + x)];
+      temp[2 * x] = (a + d) * invSqrt2;
+      temp[2 * x + 1] = (a - d) * invSqrt2;
+    }
+    for (let x = 0; x < w; x++) out[row + x] = temp[x];
+  }
+
+  return out;
+}
+
+function waveletHHIndex(k, w, h) {
+  // HH band is bottom-right quadrant after one-level DWT.
+  const hhW = w >> 1;
+  const hhH = h >> 1;
+  const x = k % hhW;
+  const y = Math.floor(k / hhW);
+  return (h / 2 + y) * w + (w / 2 + x);
+}
+
+function waveletSign(bitIdx, sampleIdx) {
+  let x = (WV_SEED ^ Math.imul(bitIdx + 1, 0x9e3779b1) ^ Math.imul(sampleIdx + 1, 0x85ebca6b)) >>> 0;
+  x ^= x >>> 16;
+  x = Math.imul(x, 0x7feb352d) >>> 0;
+  x ^= x >>> 15;
+  return (x & 1) ? 1 : -1;
+}
+
+function encodeDataWavelet(imageData, bytes) {
+  if (bytes.length > WV_MAX_BYTES) {
+    throw new Error(`Wavelet Lab supports messages up to ${WV_MAX_BYTES} bytes. Try a shorter message.`);
+  }
+
+  const { plane, w, h } = getBluePlane(imageData);
+  if (w < 256 || h < 256) throw new Error('Wavelet Lab works best with images at least 256×256.');
+
+  const hhCount = (w >> 1) * (h >> 1);
+  const order = buildShuffle(hhCount, WV_SEED);
+
+  const lenHi = bytes.length >> 8, lenLo = bytes.length & 0xff;
+  const header = rsEncode(new Uint8Array([WV_MAGIC[0], WV_MAGIC[1], WV_MAGIC[2], lenHi, lenLo]), WV_ECC);
+  const body = rsEncode(bytes, WV_ECC);
+
+  const allBytes = new Uint8Array(header.length + body.length);
+  allBytes.set(header);
+  allBytes.set(body, header.length);
+
+  const totalBits = allBytes.length * 8;
+  const neededCoeffs = totalBits * WV_SPREAD;
+  if (neededCoeffs > hhCount) {
+    throw new Error(`Image too small for Wavelet Lab. Need ${neededCoeffs} wavelet coefficients. Try a larger image or shorter message.`);
+  }
+
+  const coeff = haarDWT2D(plane, w, h);
+
+  for (let bitIdx = 0; bitIdx < totalBits; bitIdx++) {
+    const bit = (allBytes[bitIdx >> 3] >> (7 - (bitIdx & 7))) & 1;
+    const bitPolarity = bit ? 1 : -1;
+
+    for (let s = 0; s < WV_SPREAD; s++) {
+      const k = order[bitIdx * WV_SPREAD + s];
+      const idx = waveletHHIndex(k, w, h);
+      const sign = waveletSign(bitIdx, s);
+      coeff[idx] += bitPolarity * sign * WV_ALPHA;
+    }
+  }
+
+  const reconstructed = haarIDWT2D(coeff, w, h);
+  return putBluePlane(imageData, reconstructed, w, h);
+}
+
+function readWaveletBit(coeff, order, w, h, bitIdx) {
+  let score = 0;
+  for (let s = 0; s < WV_SPREAD; s++) {
+    const k = order[bitIdx * WV_SPREAD + s];
+    const idx = waveletHHIndex(k, w, h);
+    const sign = waveletSign(bitIdx, s);
+    score += sign * coeff[idx];
+  }
+  return score > 0 ? 1 : 0;
+}
+
+function readWaveletBitsAsBytes(imageData, order, coeff, w, h, startBit, bitCount) {
+  const bits = [];
+  for (let i = startBit; i < startBit + bitCount; i++) {
+    bits.push(readWaveletBit(coeff, order, w, h, i));
+  }
+  return bitsToBytes(bits);
+}
+
+function decodeDataWavelet(imageData) {
+  const { plane, w, h } = getBluePlane(imageData);
+  if (w < 256 || h < 256) throw new Error('Image too small for Wavelet Lab decoding.');
+
+  const hhCount = (w >> 1) * (h >> 1);
+  const order = buildShuffle(hhCount, WV_SEED);
+  const coeff = haarDWT2D(plane, w, h);
+
+  const headerLen = 5 + WV_ECC;
+  const headerBits = headerLen * 8;
+  if (headerBits * WV_SPREAD > hhCount) throw new Error('Image too small for Wavelet Lab header.');
+
+  const rawHeader = readWaveletBitsAsBytes(imageData, order, coeff, w, h, 0, headerBits);
+
+  let hdr;
+  try { hdr = rsDecode(rawHeader, WV_ECC); }
+  catch(e) { throw new Error('No Wavelet Lab data found or header is too corrupted.'); }
+
+  if (hdr[0] !== WV_MAGIC[0] || hdr[1] !== WV_MAGIC[1] || hdr[2] !== WV_MAGIC[2]) {
+    throw new Error('No Wavelet Lab data found.');
+  }
+
+  const msgLen = (hdr[3] << 8) | hdr[4];
+  if (msgLen < 0 || msgLen > WV_MAX_BYTES) throw new Error('Corrupt Wavelet Lab length field.');
+
+  const bodyLen = msgLen + WV_ECC;
+  const bodyBits = bodyLen * 8;
+  const bodyStart = headerBits;
+
+  if ((bodyStart + bodyBits) * WV_SPREAD > hhCount) {
+    throw new Error('Wavelet Lab payload exceeds image capacity.');
+  }
+
+  const rawBody = readWaveletBitsAsBytes(imageData, order, coeff, w, h, bodyStart, bodyBits);
+
+  let body;
+  try { body = rsDecode(rawBody, WV_ECC); }
+  catch(e) { throw new Error('Wavelet Lab message too corrupted to recover. Try the exact downloaded PNG, higher strength in a future version, or a shorter message.'); }
+
+  return new TextDecoder().decode(body);
+}
+
+async function runWaveletSelfTest() {
+  if (!encImg) return;
+  const text = document.getElementById('enc-text').value.trim() || 'PlaneSight wavelet test';
+  const dbg = document.getElementById('debug-out');
+  dbg.style.display = 'block';
+  dbg.textContent = 'Running Wavelet Lab self-test...';
+  await new Promise(r => setTimeout(r, 10));
+
+  const log = [];
+  try {
+    const msgBytes = new TextEncoder().encode(text);
+    log.push(`Message: "${text}" (${msgBytes.length} bytes)`);
+    const encoded = encodeDataWavelet(encImg, msgBytes);
+    log.push('Wavelet Lab encode OK');
+
+    const testImg = new ImageData(encoded, encImg.width, encImg.height);
+    const decoded = decodeDataWavelet(testImg);
+    log.push(`Wavelet Lab decode OK: "${decoded}"`);
+    log.push(decoded === text ? '✓ WAVELET LAB ROUND-TRIP PASSED' : `✗ MISMATCH: got "${decoded}"`);
+  } catch(e) {
+    log.push(`✗ ERROR: ${e.message}`);
+  }
+  dbg.textContent = log.join('\n');
+}
+
+
+
+// ─── Hybrid Lab v1.1: multi-layer redundant embedding ─────────────────────────
+// Hybrid Lab embeds the same payload through multiple independent methods:
+// 1. JPEG Resilient luminance-grid embedding
+// 2. DCT Lab mid-frequency embedding
+// 3. Wavelet Lab Haar HH embedding
+// 4. Watermark Lab spread-spectrum blue-channel correlation
+//
+// This does NOT guarantee survival against every transformation, but it gives
+// the decoder multiple chances to recover the same message after recompression.
+// It is the recommended "maximum survivability" research mode.
+
+function encodeDataHybrid(imageData, bytes, strength) {
+  let stage = imageData;
+
+  // Apply strongest/most structural modes first, then subtler overlays.
+  let data1 = encodeData(stage, bytes, strength);
+  stage = new ImageData(data1, imageData.width, imageData.height);
+
+  try {
+    let data2 = encodeDataDCT(stage, bytes);
+    stage = new ImageData(data2, imageData.width, imageData.height);
+  } catch(e) {
+    console.warn('Hybrid DCT layer skipped:', e.message);
+  }
+
+  try {
+    let data3 = encodeDataWavelet(stage, bytes);
+    stage = new ImageData(data3, imageData.width, imageData.height);
+  } catch(e) {
+    console.warn('Hybrid Wavelet layer skipped:', e.message);
+  }
+
+  try {
+    let data4 = encodeDataWatermark(stage, bytes);
+    stage = new ImageData(data4, imageData.width, imageData.height);
+  } catch(e) {
+    console.warn('Hybrid Watermark layer skipped:', e.message);
+  }
+
+  return stage.data;
+}
+
+function decodeDataHybrid(imageData) {
+  const attempts = [
+    ['JPEG Resilient layer', () => decodeData(imageData)],
+    ['DCT layer', () => decodeDataDCT(imageData)],
+    ['Wavelet layer', () => decodeDataWavelet(imageData)],
+    ['Watermark layer', () => decodeDataWatermark(imageData)],
+    ['PNG Stealth layer', () => decodeDataStealth(imageData)]
+  ];
+
+  const errors = [];
+  for (const [name, fn] of attempts) {
+    try {
+      return { text: fn(), mode: 'Hybrid Lab — recovered from ' + name };
+    } catch(e) {
+      errors.push(name + ': ' + e.message);
+    }
+  }
+
+  throw new Error('Hybrid Lab could not recover any embedded layer. ' + errors.slice(0, 2).join(' | '));
+}
+
+async function runHybridSelfTest() {
+  if (!encImg) return;
+  const text = document.getElementById('enc-text').value.trim() || 'PlaneSight hybrid test';
+  const strength = parseInt(document.getElementById('strength').value);
+  const dbg = document.getElementById('debug-out');
+  dbg.style.display = 'block';
+  dbg.textContent = 'Running Hybrid Lab self-test...';
+  await new Promise(r => setTimeout(r, 10));
+
+  const log = [];
+  try {
+    const msgBytes = new TextEncoder().encode(text);
+    log.push(`Message: "${text}" (${msgBytes.length} bytes), strength=${strength}`);
+    const encoded = encodeDataHybrid(encImg, msgBytes, strength);
+    log.push('Hybrid encode OK');
+
+    const testImg = new ImageData(encoded, encImg.width, encImg.height);
+    const decoded = decodeDataHybrid(testImg);
+    log.push(`Hybrid decode OK via ${decoded.mode}`);
+    log.push(`Decoded: "${decoded.text}"`);
+    log.push(decoded.text === text ? '✓ HYBRID ROUND-TRIP PASSED' : `✗ MISMATCH: got "${decoded.text}"`);
+  } catch(e) {
+    log.push(`✗ ERROR: ${e.message}`);
+  }
+  dbg.textContent = log.join('\n');
+}
+
+
+
+// ─── Scale Lab v1: normalized 1080p-downscale-resilient embedding ───────────
+// This mode is specifically designed to survive resizing from high-resolution
+// images down to 4K or 1080p. It does NOT rely on exact pixel positions.
+// Instead, it embeds one bit per normalized cell in a 64×36 logical grid.
+// The decoder reads the same normalized regions regardless of the final pixel
+// dimensions.
+//
+// Tradeoffs:
+// - Very low payload capacity.
+// - More visible than pure Wavelet/Watermark modes.
+// - Much more likely to survive resizing.
+// - Cropping, aspect-ratio changes, filters, aggressive recompression, and
+//   social-media processing can still destroy it.
+//
+// Use very short messages first.
+
+const SCALE_MAGIC = [0x53, 0x43, 0x4C]; // "SCL"
+const SCALE_GRID_X = 64;
+const SCALE_GRID_Y = 36;
+const SCALE_CELLS = SCALE_GRID_X * SCALE_GRID_Y;
+const SCALE_ECC = 24;
+const SCALE_MAX_BYTES = 32;
+const SCALE_SEED = 0x501EC0DE;
+const SCALE_MARGIN = 18;
+const SCALE_MAX_DELTA = 22;
+
+function scaleCellBounds(width, height, cellIndex) {
+  const gx = cellIndex % SCALE_GRID_X;
+  const gy = Math.floor(cellIndex / SCALE_GRID_X);
+  return {
+    x0: Math.floor(gx * width / SCALE_GRID_X),
+    x1: Math.floor((gx + 1) * width / SCALE_GRID_X),
+    y0: Math.floor(gy * height / SCALE_GRID_Y),
+    y1: Math.floor((gy + 1) * height / SCALE_GRID_Y)
+  };
+}
+
+function scaleCellChromaHalf(data, width, height, cellIndex, side) {
+  const { x0, x1, y0, y1 } = scaleCellBounds(width, height, cellIndex);
+  const mid = Math.floor((x0 + x1) / 2);
+  const xs = side === 0 ? x0 : mid;
+  const xe = side === 0 ? mid : x1;
+  let sum = 0, count = 0;
+
+  for (let y = y0; y < y1; y++) {
+    for (let x = xs; x < xe; x++) {
+      const base = (y * width + x) * 4;
+      // Blue-yellow chroma signal. Less obvious than luminance blocks.
+      sum += data[base + 2] - ((data[base] + data[base + 1]) / 2);
+      count++;
+    }
+  }
+  return count ? sum / count : 0;
+}
+
+function adjustScaleCellHalf(out, width, height, cellIndex, side, delta) {
+  const { x0, x1, y0, y1 } = scaleCellBounds(width, height, cellIndex);
+  const mid = Math.floor((x0 + x1) / 2);
+  const xs = side === 0 ? x0 : mid;
+  const xe = side === 0 ? mid : x1;
+
+  for (let y = y0; y < y1; y++) {
+    for (let x = xs; x < xe; x++) {
+      const base = (y * width + x) * 4;
+      // Push chroma while approximately preserving luminance:
+      // blue up, red/green down for positive delta; reverse for negative.
+      out[base + 2] = clamp8(out[base + 2] + delta);
+      out[base]     = clamp8(out[base]     - delta * 0.35);
+      out[base + 1] = clamp8(out[base + 1] - delta * 0.35);
+    }
+  }
+}
+
+function encodeScaleBit(out, width, height, cellIndex, bit) {
+  const left = scaleCellChromaHalf(out, width, height, cellIndex, 0);
+  const right = scaleCellChromaHalf(out, width, height, cellIndex, 1);
+  const diff = left - right;
+  const target = bit ? SCALE_MARGIN : -SCALE_MARGIN;
+  let delta = (target - diff) / 2;
+  delta = Math.max(-SCALE_MAX_DELTA, Math.min(SCALE_MAX_DELTA, delta));
+
+  adjustScaleCellHalf(out, width, height, cellIndex, 0, delta);
+  adjustScaleCellHalf(out, width, height, cellIndex, 1, -delta);
+}
+
+function readScaleBit(data, width, height, cellIndex) {
+  const left = scaleCellChromaHalf(data, width, height, cellIndex, 0);
+  const right = scaleCellChromaHalf(data, width, height, cellIndex, 1);
+  return left > right ? 1 : 0;
+}
+
+function encodeDataScale(imageData, bytes) {
+  if (bytes.length > SCALE_MAX_BYTES) {
+    throw new Error(`Scale Lab supports short messages only. Max ${SCALE_MAX_BYTES} bytes. Try a shorter message.`);
+  }
+
+  if (imageData.width < 1280 || imageData.height < 720) {
+    throw new Error('Scale Lab needs a reasonably large image. For best results use 5K, 4K, or at least 1080p.');
+  }
+
+  const lenHi = bytes.length >> 8, lenLo = bytes.length & 0xff;
+  const header = rsEncode(new Uint8Array([SCALE_MAGIC[0], SCALE_MAGIC[1], SCALE_MAGIC[2], lenHi, lenLo]), SCALE_ECC);
+  const body = rsEncode(bytes, SCALE_ECC);
+
+  const allBytes = new Uint8Array(header.length + body.length);
+  allBytes.set(header);
+  allBytes.set(body, header.length);
+
+  const totalBits = allBytes.length * 8;
+  if (totalBits > SCALE_CELLS) {
+    throw new Error(`Scale Lab payload too large. Need ${totalBits} cells but only ${SCALE_CELLS} are available.`);
+  }
+
+  const order = buildShuffle(SCALE_CELLS, SCALE_SEED);
+  const out = new Uint8ClampedArray(imageData.data);
+
+  // Multiple passes make the average cell signal converge toward target.
+  for (let pass = 0; pass < 3; pass++) {
+    for (let bitIdx = 0; bitIdx < totalBits; bitIdx++) {
+      const bit = (allBytes[bitIdx >> 3] >> (7 - (bitIdx & 7))) & 1;
+      encodeScaleBit(out, imageData.width, imageData.height, order[bitIdx], bit);
+    }
+  }
+
+  return out;
+}
+
+function readScaleBitsAsBytes(imageData, order, startBit, bitCount) {
+  const bits = [];
+  for (let i = startBit; i < startBit + bitCount; i++) {
+    bits.push(readScaleBit(imageData.data, imageData.width, imageData.height, order[i]));
+  }
+  return bitsToBytes(bits);
+}
+
+function decodeDataScale(imageData) {
+  if (imageData.width < 640 || imageData.height < 360) {
+    throw new Error('Image too small for Scale Lab decoding.');
+  }
+
+  const order = buildShuffle(SCALE_CELLS, SCALE_SEED);
+  const headerLen = 5 + SCALE_ECC;
+  const headerBits = headerLen * 8;
+
+  const rawHeader = readScaleBitsAsBytes(imageData, order, 0, headerBits);
+  let hdr;
+  try { hdr = rsDecode(rawHeader, SCALE_ECC); }
+  catch(e) { throw new Error('No Scale Lab data found or header is too corrupted.'); }
+
+  if (hdr[0] !== SCALE_MAGIC[0] || hdr[1] !== SCALE_MAGIC[1] || hdr[2] !== SCALE_MAGIC[2]) {
+    throw new Error('No Scale Lab data found.');
+  }
+
+  const msgLen = (hdr[3] << 8) | hdr[4];
+  if (msgLen < 0 || msgLen > SCALE_MAX_BYTES) {
+    throw new Error('Corrupt Scale Lab length field.');
+  }
+
+  const bodyLen = msgLen + SCALE_ECC;
+  const bodyBits = bodyLen * 8;
+  const bodyStart = headerBits;
+
+  if (bodyStart + bodyBits > SCALE_CELLS) {
+    throw new Error('Scale Lab payload exceeds available grid capacity.');
+  }
+
+  const rawBody = readScaleBitsAsBytes(imageData, order, bodyStart, bodyBits);
+  let body;
+  try { body = rsDecode(rawBody, SCALE_ECC); }
+  catch(e) { throw new Error('Scale Lab message too corrupted to recover. Try less downscaling, avoid JPEG/social recompression, or use a shorter message.'); }
+
+  return new TextDecoder().decode(body);
+}
+
+async function runScaleSelfTest() {
+  if (!encImg) return;
+  const text = document.getElementById('enc-text').value.trim() || 'scale test';
+  const dbg = document.getElementById('debug-out');
+  dbg.style.display = 'block';
+  dbg.textContent = 'Running Scale Lab self-test...';
+  await new Promise(r => setTimeout(r, 10));
+
+  const log = [];
+  try {
+    const msgBytes = new TextEncoder().encode(text);
+    log.push(`Message: "${text}" (${msgBytes.length} bytes)`);
+    const encoded = encodeDataScale(encImg, msgBytes);
+    log.push('Scale Lab encode OK');
+
+    const testImg = new ImageData(encoded, encImg.width, encImg.height);
+    const decoded = decodeDataScale(testImg);
+    log.push(`Scale Lab full-size decode OK: "${decoded}"`);
+
+    // Simulate downscale to 1080p height while preserving aspect ratio.
+    const scale = 1080 / encImg.height;
+    if (scale < 1) {
+      const w2 = Math.max(640, Math.round(encImg.width * scale));
+      const h2 = 1080;
+      const c1 = document.createElement('canvas');
+      c1.width = encImg.width; c1.height = encImg.height;
+      c1.getContext('2d').putImageData(testImg, 0, 0);
+
+      const c2 = document.createElement('canvas');
+      c2.width = w2; c2.height = h2;
+      const ctx2 = c2.getContext('2d');
+      ctx2.imageSmoothingEnabled = true;
+      ctx2.imageSmoothingQuality = 'high';
+      ctx2.drawImage(c1, 0, 0, w2, h2);
+      const down = ctx2.getImageData(0, 0, w2, h2);
+
+      const decodedDown = decodeDataScale(down);
+      log.push(`Scale Lab simulated 1080p decode OK: "${decodedDown}"`);
+      log.push(decodedDown === text ? '✓ 1080p SCALE TEST PASSED' : `✗ 1080p MISMATCH: got "${decodedDown}"`);
+    } else {
+      log.push('Image is already 1080p or smaller; skipped downscale simulation.');
+    }
+  } catch(e) {
+    log.push(`✗ ERROR: ${e.message}`);
+  }
+  dbg.textContent = log.join('\n');
+}
+
+
+
+// ─── Scale Hybrid v1: multi-scale normalized resize-resilient embedding ─────
+// This is the most resize-focused mode in PlaneSight.
+// It embeds the same message into multiple normalized layers:
+//   1. Large 32×18 blue/yellow chroma regions
+//   2. Medium 64×36 blue/yellow chroma regions
+//   3. Fine 96×54 blue/yellow chroma regions
+//   4. Multi-scale luminance region layer
+//
+// All layers use relative image coordinates, not fixed pixels.
+// That means a 5K image resized to 4K or 1080p still has the same logical grid.
+// Decoding tries each layer independently and succeeds if any one survives.
+//
+// Tradeoffs:
+// - Use very short messages.
+// - More robust to resizing than pixel/DCT/wavelet-only modes.
+// - More visible than pure Watermark/Wavelet modes.
+// - Cropping, aspect-ratio changes, filters, heavy JPEG, or social-media
+//   recompression may still destroy the payload.
+
+const SH_MAGIC = [0x53, 0x48, 0x59]; // "SHY"
+const SH_ECC = 24;
+const SH_MAX_BYTES = 24;
+const SH_SEED = 0x5CA1E001;
+
+const SH_LAYERS = [
+  { name: 'large chroma grid', gridX: 32, gridY: 18, margin: 18, maxDelta: 18, channel: 'chroma', seed: 0x5CA1E101 },
+  { name: 'medium chroma grid', gridX: 64, gridY: 36, margin: 16, maxDelta: 16, channel: 'chroma', seed: 0x5CA1E102 },
+  { name: 'fine chroma grid', gridX: 96, gridY: 54, margin: 12, maxDelta: 12, channel: 'chroma', seed: 0x5CA1E103 },
+  { name: 'large luminance grid', gridX: 32, gridY: 18, margin: 12, maxDelta: 12, channel: 'luma', seed: 0x5CA1E104 }
+];
+
+function shCellBounds(width, height, gridX, gridY, cellIndex) {
+  const gx = cellIndex % gridX;
+  const gy = Math.floor(cellIndex / gridX);
+  return {
+    x0: Math.floor(gx * width / gridX),
+    x1: Math.floor((gx + 1) * width / gridX),
+    y0: Math.floor(gy * height / gridY),
+    y1: Math.floor((gy + 1) * height / gridY)
+  };
+}
+
+function shCellHalfMetric(data, width, height, layer, cellIndex, side) {
+  const { x0, x1, y0, y1 } = shCellBounds(width, height, layer.gridX, layer.gridY, cellIndex);
+  const mid = Math.floor((x0 + x1) / 2);
+  const xs = side === 0 ? x0 : mid;
+  const xe = side === 0 ? mid : x1;
+  let sum = 0, count = 0;
+
+  for (let y = y0; y < y1; y++) {
+    for (let x = xs; x < xe; x++) {
+      const base = (y * width + x) * 4;
+      const r = data[base], g = data[base + 1], b = data[base + 2];
+      if (layer.channel === 'luma') sum += 0.299*r + 0.587*g + 0.114*b;
+      else sum += b - ((r + g) / 2); // blue/yellow chroma
+      count++;
+    }
+  }
+  return count ? sum / count : 0;
+}
+
+function shAdjustCellHalf(out, width, height, layer, cellIndex, side, delta) {
+  const { x0, x1, y0, y1 } = shCellBounds(width, height, layer.gridX, layer.gridY, cellIndex);
+  const mid = Math.floor((x0 + x1) / 2);
+  const xs = side === 0 ? x0 : mid;
+  const xe = side === 0 ? mid : x1;
+
+  for (let y = y0; y < y1; y++) {
+    for (let x = xs; x < xe; x++) {
+      const base = (y * width + x) * 4;
+      if (layer.channel === 'luma') {
+        out[base]     = clamp8(out[base] + delta);
+        out[base + 1] = clamp8(out[base + 1] + delta);
+        out[base + 2] = clamp8(out[base + 2] + delta);
+      } else {
+        // Chroma shift that roughly preserves luminance better than pure brightness.
+        out[base + 2] = clamp8(out[base + 2] + delta);
+        out[base]     = clamp8(out[base] - delta * 0.35);
+        out[base + 1] = clamp8(out[base + 1] - delta * 0.35);
+      }
+    }
+  }
+}
+
+function shEncodeBit(out, width, height, layer, cellIndex, bit) {
+  const left = shCellHalfMetric(out, width, height, layer, cellIndex, 0);
+  const right = shCellHalfMetric(out, width, height, layer, cellIndex, 1);
+  const diff = left - right;
+  const target = bit ? layer.margin : -layer.margin;
+  let delta = (target - diff) / 2;
+  delta = Math.max(-layer.maxDelta, Math.min(layer.maxDelta, delta));
+
+  shAdjustCellHalf(out, width, height, layer, cellIndex, 0, delta);
+  shAdjustCellHalf(out, width, height, layer, cellIndex, 1, -delta);
+}
+
+function shReadBit(data, width, height, layer, cellIndex) {
+  const left = shCellHalfMetric(data, width, height, layer, cellIndex, 0);
+  const right = shCellHalfMetric(data, width, height, layer, cellIndex, 1);
+  return left > right ? 1 : 0;
+}
+
+function shBuildPayload(bytes) {
+  const lenHi = bytes.length >> 8, lenLo = bytes.length & 0xff;
+  const header = rsEncode(new Uint8Array([SH_MAGIC[0], SH_MAGIC[1], SH_MAGIC[2], lenHi, lenLo]), SH_ECC);
+  const body = rsEncode(bytes, SH_ECC);
+  const allBytes = new Uint8Array(header.length + body.length);
+  allBytes.set(header);
+  allBytes.set(body, header.length);
+  return { header, body, allBytes };
+}
+
+function encodeScaleHybridLayer(out, width, height, layer, allBytes) {
+  const totalBits = allBytes.length * 8;
+  const cells = layer.gridX * layer.gridY;
+  if (totalBits > cells) return false;
+
+  const order = buildShuffle(cells, layer.seed);
+
+  // Repeated passes force each region toward its target. Lower deltas keep it less visible,
+  // multiple passes make decoding more reliable.
+  for (let pass = 0; pass < 3; pass++) {
+    for (let bitIdx = 0; bitIdx < totalBits; bitIdx++) {
+      const bit = (allBytes[bitIdx >> 3] >> (7 - (bitIdx & 7))) & 1;
+      shEncodeBit(out, width, height, layer, order[bitIdx], bit);
+    }
+  }
+  return true;
+}
+
+function encodeDataScaleHybrid(imageData, bytes) {
+  if (bytes.length > SH_MAX_BYTES) {
+    throw new Error(`Scale Hybrid supports very short messages only. Max ${SH_MAX_BYTES} bytes. Try a shorter message.`);
+  }
+
+  if (imageData.width < 1280 || imageData.height < 720) {
+    throw new Error('Scale Hybrid needs a reasonably large image. For best results use 5K, 4K, or at least 1080p.');
+  }
+
+  const { allBytes } = shBuildPayload(bytes);
+  const out = new Uint8ClampedArray(imageData.data);
+  let embeddedLayers = 0;
+
+  for (const layer of SH_LAYERS) {
+    if (encodeScaleHybridLayer(out, imageData.width, imageData.height, layer, allBytes)) {
+      embeddedLayers++;
+    }
+  }
+
+  if (embeddedLayers === 0) {
+    throw new Error('Scale Hybrid could not embed any layer. Use a shorter message.');
+  }
+
+  return out;
+}
+
+function shReadBitsAsBytes(imageData, layer, order, startBit, bitCount) {
+  const bits = [];
+  for (let i = startBit; i < startBit + bitCount; i++) {
+    bits.push(shReadBit(imageData.data, imageData.width, imageData.height, layer, order[i]));
+  }
+  return bitsToBytes(bits);
+}
+
+function decodeScaleHybridLayer(imageData, layer) {
+  const cells = layer.gridX * layer.gridY;
+  const order = buildShuffle(cells, layer.seed);
+  const headerLen = 5 + SH_ECC;
+  const headerBits = headerLen * 8;
+
+  if (headerBits > cells) throw new Error(`${layer.name}: insufficient header cells.`);
+
+  const rawHeader = shReadBitsAsBytes(imageData, layer, order, 0, headerBits);
+  let hdr;
+  try { hdr = rsDecode(rawHeader, SH_ECC); }
+  catch(e) { throw new Error(`${layer.name}: header corrupted.`); }
+
+  if (hdr[0] !== SH_MAGIC[0] || hdr[1] !== SH_MAGIC[1] || hdr[2] !== SH_MAGIC[2]) {
+    throw new Error(`${layer.name}: magic not found.`);
+  }
+
+  const msgLen = (hdr[3] << 8) | hdr[4];
+  if (msgLen < 0 || msgLen > SH_MAX_BYTES) {
+    throw new Error(`${layer.name}: corrupt length.`);
+  }
+
+  const bodyLen = msgLen + SH_ECC;
+  const bodyBits = bodyLen * 8;
+  const bodyStart = headerBits;
+  if (bodyStart + bodyBits > cells) {
+    throw new Error(`${layer.name}: payload exceeds grid.`);
+  }
+
+  const rawBody = shReadBitsAsBytes(imageData, layer, order, bodyStart, bodyBits);
+  let body;
+  try { body = rsDecode(rawBody, SH_ECC); }
+  catch(e) { throw new Error(`${layer.name}: body corrupted.`); }
+
+  return new TextDecoder().decode(body);
+}
+
+function decodeDataScaleHybrid(imageData) {
+  const errors = [];
+  for (const layer of SH_LAYERS) {
+    try {
+      return {
+        text: decodeScaleHybridLayer(imageData, layer),
+        mode: 'Scale Hybrid — recovered from ' + layer.name
+      };
+    } catch(e) {
+      errors.push(e.message);
+    }
+  }
+  throw new Error('Scale Hybrid could not recover any normalized layer. ' + errors.slice(0, 2).join(' | '));
+}
+
+async function runScaleHybridSelfTest() {
+  if (!encImg) return;
+  const text = document.getElementById('enc-text').value.trim() || 'scale hybrid test';
+  const dbg = document.getElementById('debug-out');
+  dbg.style.display = 'block';
+  dbg.textContent = 'Running Scale Hybrid self-test...';
+  await new Promise(r => setTimeout(r, 10));
+
+  const log = [];
+  try {
+    const msgBytes = new TextEncoder().encode(text);
+    log.push(`Message: "${text}" (${msgBytes.length} bytes)`);
+    const encoded = encodeDataScaleHybrid(encImg, msgBytes);
+    log.push('Scale Hybrid encode OK');
+
+    const full = new ImageData(encoded, encImg.width, encImg.height);
+    const decodedFull = decodeDataScaleHybrid(full);
+    log.push(`Full-size decode OK via ${decodedFull.mode}: "${decodedFull.text}"`);
+
+    // Simulate downscale to 4K width, if larger.
+    const c1 = document.createElement('canvas');
+    c1.width = encImg.width; c1.height = encImg.height;
+    c1.getContext('2d').putImageData(full, 0, 0);
+
+    if (encImg.width > 3840) {
+      const w4 = 3840;
+      const h4 = Math.round(encImg.height * (w4 / encImg.width));
+      const c4 = document.createElement('canvas');
+      c4.width = w4; c4.height = h4;
+      const ctx4 = c4.getContext('2d');
+      ctx4.imageSmoothingEnabled = true;
+      ctx4.imageSmoothingQuality = 'high';
+      ctx4.drawImage(c1, 0, 0, w4, h4);
+      const img4 = ctx4.getImageData(0, 0, w4, h4);
+      const decoded4 = decodeDataScaleHybrid(img4);
+      log.push(`4K-width simulated decode OK via ${decoded4.mode}: "${decoded4.text}"`);
+    }
+
+    // Simulate downscale to 1080p height, preserving aspect ratio.
+    if (encImg.height > 1080) {
+      const h2 = 1080;
+      const w2 = Math.round(encImg.width * (h2 / encImg.height));
+      const c2 = document.createElement('canvas');
+      c2.width = w2; c2.height = h2;
+      const ctx2 = c2.getContext('2d');
+      ctx2.imageSmoothingEnabled = true;
+      ctx2.imageSmoothingQuality = 'high';
+      ctx2.drawImage(c1, 0, 0, w2, h2);
+      const img2 = ctx2.getImageData(0, 0, w2, h2);
+      const decoded2 = decodeDataScaleHybrid(img2);
+      log.push(`1080p simulated decode OK via ${decoded2.mode}: "${decoded2.text}"`);
+      log.push(decoded2.text === text ? '✓ 1080p SCALE HYBRID TEST PASSED' : `✗ 1080p MISMATCH: got "${decoded2.text}"`);
+    }
+  } catch(e) {
+    log.push(`✗ ERROR: ${e.message}`);
+  }
+  dbg.textContent = log.join('\n');
+}
+
+
+
+// ─── Watermark Lab v3: paired-pixel differential correlation ────────────────
+// Override for Watermark Lab v1.
+// v1 nudged individual blue pixels and decoded against natural image chroma,
+// which was too weak on many images. v2 uses paired pixels:
+//   bit signal = blue(pixel A) - blue(pixel B)
+// This cancels more natural image variation and gives the computer a clearer
+// correlation target while keeping changes small and scattered.
+//
+// Intended use: visually subtle PNG-safe watermarking. It is not guaranteed
+// to survive JPEG/resizing; use Scale Hybrid for resize tests.
+
+const WM2_MAGIC = [0x57, 0x4D, 0x32]; // "WM2"
+const WM2_ECC = 16;
+const WM2_MAX_BYTES = 128;
+const WM2_SEED = 0xB10ECAFF;
+const WM2_SPREAD = 160;       // random pixel pairs per bit
+const WM2_MARGIN = 10;        // target blue difference per pair
+const WM2_MAX_DELTA = 8;      // per-channel safety cap
+
+function wm2Sign(bitIdx, sampleIdx) {
+  let x = (WM2_SEED ^ Math.imul(bitIdx + 1, 0x27d4eb2d) ^ Math.imul(sampleIdx + 1, 0x165667b1)) >>> 0;
+  x ^= x >>> 15;
+  x = Math.imul(x, 0x85ebca6b) >>> 0;
+  x ^= x >>> 13;
+  return (x & 1) ? 1 : -1;
+}
+
+function wm2AdjustPair(out, baseA, baseB, targetDiff) {
+  const diff = out[baseA + 2] - out[baseB + 2];
+  let delta = (targetDiff - diff) / 2;
+  delta = Math.max(-WM2_MAX_DELTA, Math.min(WM2_MAX_DELTA, delta));
+
+  // Opposite blue shifts across a pseudo-random pair. This is less blocky than
+  // region methods and gives the decoder a measurable differential signal.
+  out[baseA + 2] = clamp8(out[baseA + 2] + delta);
+  out[baseB + 2] = clamp8(out[baseB + 2] - delta);
+}
+
+function encodeDataWatermark(imageData, bytes) {
+  if (bytes.length > WM2_MAX_BYTES) {
+    throw new Error(`Watermark Lab supports messages up to ${WM2_MAX_BYTES} bytes. Try a shorter message.`);
+  }
+
+  const totalPx = imageData.width * imageData.height;
+  const lenHi = bytes.length >> 8, lenLo = bytes.length & 0xff;
+
+  const header = rsEncode(new Uint8Array([WM2_MAGIC[0], WM2_MAGIC[1], WM2_MAGIC[2], lenHi, lenLo]), WM2_ECC);
+  const body = rsEncode(bytes, WM2_ECC);
+
+  const allBytes = new Uint8Array(header.length + body.length);
+  allBytes.set(header);
+  allBytes.set(body, header.length);
+
+  const totalBits = allBytes.length * 8;
+  const neededPx = totalBits * WM2_SPREAD * 2;
+  if (neededPx > totalPx) {
+    throw new Error(`Image too small for Watermark Lab. Need ${neededPx} pixels. Try a larger image or shorter message.`);
+  }
+
+  const order = buildShuffle(totalPx, WM2_SEED);
+  const out = new Uint8ClampedArray(imageData.data);
+
+  // Two passes improves convergence without making any one pixel too obvious.
+  for (let pass = 0; pass < 2; pass++) {
+    for (let bitIdx = 0; bitIdx < totalBits; bitIdx++) {
+      const bit = (allBytes[bitIdx >> 3] >> (7 - (bitIdx & 7))) & 1;
+      const bitPolarity = bit ? 1 : -1;
+
+      for (let s = 0; s < WM2_SPREAD; s++) {
+        const a = order[(bitIdx * WM2_SPREAD + s) * 2];
+        const b = order[(bitIdx * WM2_SPREAD + s) * 2 + 1];
+        const sign = wm2Sign(bitIdx, s);
+        const target = bitPolarity * sign * WM2_MARGIN;
+        wm2AdjustPair(out, a * 4, b * 4, target);
+      }
+    }
+  }
+
+  return out;
+}
+
+function readWatermarkBit(data, order, bitIdx) {
+  let score = 0;
+
+  for (let s = 0; s < WM2_SPREAD; s++) {
+    const a = order[(bitIdx * WM2_SPREAD + s) * 2];
+    const b = order[(bitIdx * WM2_SPREAD + s) * 2 + 1];
+    const sign = wm2Sign(bitIdx, s);
+    const diff = data[a * 4 + 2] - data[b * 4 + 2];
+    score += sign * diff;
+  }
+
+  return score > 0 ? 1 : 0;
+}
+
+function readWatermarkBitsAsBytes(imageData, order, startBit, bitCount) {
+  const bits = [];
+  for (let i = startBit; i < startBit + bitCount; i++) {
+    bits.push(readWatermarkBit(imageData.data, order, i));
+  }
+  return bitsToBytes(bits);
+}
+
+function decodeDataWatermark(imageData) {
+  const totalPx = imageData.width * imageData.height;
+  const order = buildShuffle(totalPx, WM2_SEED);
+
+  const headerLen = 5 + WM2_ECC;
+  const headerBits = headerLen * 8;
+  if (headerBits * WM2_SPREAD * 2 > totalPx) {
+    throw new Error('Image too small for Watermark Lab header.');
+  }
+
+  const rawHeader = readWatermarkBitsAsBytes(imageData, order, 0, headerBits);
+
+  let hdr;
+  try { hdr = rsDecode(rawHeader, WM2_ECC); }
+  catch(e) { throw new Error('No Watermark Lab data found or header is too corrupted.'); }
+
+  if (hdr[0] !== WM2_MAGIC[0] || hdr[1] !== WM2_MAGIC[1] || hdr[2] !== WM2_MAGIC[2]) {
+    throw new Error('No Watermark Lab data found.');
+  }
+
+  const msgLen = (hdr[3] << 8) | hdr[4];
+  if (msgLen < 0 || msgLen > WM2_MAX_BYTES) {
+    throw new Error('Corrupt Watermark Lab length field.');
+  }
+
+  const bodyLen = msgLen + WM2_ECC;
+  const bodyBits = bodyLen * 8;
+  const bodyStart = headerBits;
+
+  if ((bodyStart + bodyBits) * WM2_SPREAD * 2 > totalPx) {
+    throw new Error('Watermark Lab payload exceeds image capacity.');
+  }
+
+  const rawBody = readWatermarkBitsAsBytes(imageData, order, bodyStart, bodyBits);
+
+  let body;
+  try { body = rsDecode(rawBody, WM2_ECC); }
+  catch(e) { throw new Error('Watermark Lab message too corrupted to recover. Try the exact downloaded PNG or a shorter message.'); }
+
+  return new TextDecoder().decode(body);
+}
+
+async function runWatermarkSelfTest() {
+  if (!encImg) return;
+  const text = document.getElementById('enc-text').value.trim() || 'PlaneSight watermark test';
+  const dbg = document.getElementById('debug-out');
+  dbg.style.display = 'block';
+  dbg.textContent = 'Running Watermark Lab v3 self-test...';
+  await new Promise(r => setTimeout(r, 10));
+
+  const log = [];
+  try {
+    const msgBytes = new TextEncoder().encode(text);
+    log.push(`Message: "${text}" (${msgBytes.length} bytes)`);
+    const encoded = encodeDataWatermark(encImg, msgBytes);
+    log.push('Watermark Lab v3 encode OK');
+
+    const testImg = new ImageData(encoded, encImg.width, encImg.height);
+    const decoded = decodeDataWatermark(testImg);
+    log.push(`Watermark Lab v3 decode OK: "${decoded}"`);
+    log.push(decoded === text ? '✓ WATERMARK LAB ROUND-TRIP PASSED' : `✗ MISMATCH: got "${decoded}"`);
+  } catch(e) {
+    log.push(`✗ ERROR: ${e.message}`);
+  }
+  dbg.textContent = log.join('\n');
+}
+
+
+
+// ─── Watermark Lab v3: reliable subtle paired-LSB embedding ─────────────────
+// Override for Watermark Lab v3.
+// v2 used statistical paired correlation, but the header could still drown in
+// natural image variation. v3 uses direct paired blue-channel parity voting.
+// This is not meant to survive JPEG or resize. It is meant to be visually subtle
+// and reliable for exact PNG round-trips.
+//
+// Use Scale Hybrid for resizing tests. Use Watermark Lab for subtle PNG storage.
+
+const WM3_MAGIC = [0x57, 0x4D, 0x33]; // "WM3"
+const WM3_ECC = 24;
+const WM3_MAX_BYTES = 256;
+const WM3_SEED = 0xB10ECB00;
+const WM3_SPREAD = 31; // odd number for majority vote
+
+function wm3SetBlueParity(out, base, bit) {
+  const idx = base + 2;
+  const v = out[idx];
+  if ((v & 1) === bit) return;
+  if (v <= 0) out[idx] = 1;
+  else if (v >= 255) out[idx] = 254;
+  else out[idx] = v + ((v & 2) ? -1 : 1);
+}
+
+function encodeDataWatermark(imageData, bytes) {
+  if (bytes.length > WM3_MAX_BYTES) {
+    throw new Error(`Watermark Lab supports messages up to ${WM3_MAX_BYTES} bytes. Try a shorter message.`);
+  }
+
+  const totalPx = imageData.width * imageData.height;
+  const lenHi = bytes.length >> 8, lenLo = bytes.length & 0xff;
+
+  const header = rsEncode(new Uint8Array([WM3_MAGIC[0], WM3_MAGIC[1], WM3_MAGIC[2], lenHi, lenLo]), WM3_ECC);
+  const body = rsEncode(bytes, WM3_ECC);
+
+  const allBytes = new Uint8Array(header.length + body.length);
+  allBytes.set(header);
+  allBytes.set(body, header.length);
+
+  const totalBits = allBytes.length * 8;
+  const neededPx = totalBits * WM3_SPREAD;
+  if (neededPx > totalPx) {
+    throw new Error(`Image too small for Watermark Lab. Need ${neededPx} pixels. Try a larger image or shorter message.`);
+  }
+
+  const order = buildShuffle(totalPx, WM3_SEED);
+  const out = new Uint8ClampedArray(imageData.data);
+
+  for (let bitIdx = 0; bitIdx < totalBits; bitIdx++) {
+    const bit = (allBytes[bitIdx >> 3] >> (7 - (bitIdx & 7))) & 1;
+    for (let s = 0; s < WM3_SPREAD; s++) {
+      const px = order[bitIdx * WM3_SPREAD + s];
+      wm3SetBlueParity(out, px * 4, bit);
+    }
+  }
+
+  return out;
+}
+
+function readWatermarkBit(data, order, bitIdx) {
+  let ones = 0;
+  for (let s = 0; s < WM3_SPREAD; s++) {
+    const px = order[bitIdx * WM3_SPREAD + s];
+    ones += data[px * 4 + 2] & 1;
+  }
+  return ones > WM3_SPREAD / 2 ? 1 : 0;
+}
+
+function readWatermarkBitsAsBytes(imageData, order, startBit, bitCount) {
+  const bits = [];
+  for (let i = startBit; i < startBit + bitCount; i++) {
+    bits.push(readWatermarkBit(imageData.data, order, i));
+  }
+  return bitsToBytes(bits);
+}
+
+function decodeDataWatermark(imageData) {
+  const totalPx = imageData.width * imageData.height;
+  const order = buildShuffle(totalPx, WM3_SEED);
+
+  const headerLen = 5 + WM3_ECC;
+  const headerBits = headerLen * 8;
+  if (headerBits * WM3_SPREAD > totalPx) {
+    throw new Error('Image too small for Watermark Lab header.');
+  }
+
+  const rawHeader = readWatermarkBitsAsBytes(imageData, order, 0, headerBits);
+
+  let hdr;
+  try { hdr = rsDecode(rawHeader, WM3_ECC); }
+  catch(e) { throw new Error('No Watermark Lab data found or header is too corrupted.'); }
+
+  if (hdr[0] !== WM3_MAGIC[0] || hdr[1] !== WM3_MAGIC[1] || hdr[2] !== WM3_MAGIC[2]) {
+    throw new Error('No Watermark Lab data found.');
+  }
+
+  const msgLen = (hdr[3] << 8) | hdr[4];
+  if (msgLen < 0 || msgLen > WM3_MAX_BYTES) {
+    throw new Error('Corrupt Watermark Lab length field.');
+  }
+
+  const bodyLen = msgLen + WM3_ECC;
+  const bodyBits = bodyLen * 8;
+  const bodyStart = headerBits;
+
+  if ((bodyStart + bodyBits) * WM3_SPREAD > totalPx) {
+    throw new Error('Watermark Lab payload exceeds image capacity.');
+  }
+
+  const rawBody = readWatermarkBitsAsBytes(imageData, order, bodyStart, bodyBits);
+
+  let body;
+  try { body = rsDecode(rawBody, WM3_ECC); }
+  catch(e) { throw new Error('Watermark Lab message too corrupted to recover. Try the exact downloaded PNG or a shorter message.'); }
+
+  return new TextDecoder().decode(body);
+}
+
+async function runWatermarkSelfTest() {
+  if (!encImg) return;
+  const text = document.getElementById('enc-text').value.trim() || 'PlaneSight watermark test';
+  const dbg = document.getElementById('debug-out');
+  dbg.style.display = 'block';
+  dbg.textContent = 'Running Watermark Lab v3 self-test...';
+  await new Promise(r => setTimeout(r, 10));
+
+  const log = [];
+  try {
+    const msgBytes = new TextEncoder().encode(text);
+    log.push(`Message: "${text}" (${msgBytes.length} bytes)`);
+    const encoded = encodeDataWatermark(encImg, msgBytes);
+    log.push('Watermark Lab v3 encode OK');
+
+    const testImg = new ImageData(encoded, encImg.width, encImg.height);
+    const decoded = decodeDataWatermark(testImg);
+    log.push(`Watermark Lab v3 decode OK: "${decoded}"`);
+    log.push(decoded === text ? '✓ WATERMARK LAB ROUND-TRIP PASSED' : `✗ MISMATCH: got "${decoded}"`);
+  } catch(e) {
+    log.push(`✗ ERROR: ${e.message}`);
+  }
+  dbg.textContent = log.join('\n');
+}
+
+
+// ─── Metadata layer: PNG tEXt chunk embedding ──────────────────────────────
+// Stores the same secret message in PNG metadata. This is very reliable while
+// the PNG file is kept intact, but metadata may be stripped by social platforms,
+// screenshots, or image editors.
+const META_KEYWORD = 'PlaneSightSecret';
+
+function crc32Bytes(bytes) {
+  let c = 0xffffffff;
+  for (let i = 0; i < bytes.length; i++) {
+    c ^= bytes[i];
+    for (let k = 0; k < 8; k++) c = (c >>> 1) ^ (0xedb88320 & -(c & 1));
+  }
+  return (c ^ 0xffffffff) >>> 0;
+}
+
+function writeUint32BE(arr, offset, value) {
+  arr[offset] = (value >>> 24) & 255;
+  arr[offset + 1] = (value >>> 16) & 255;
+  arr[offset + 2] = (value >>> 8) & 255;
+  arr[offset + 3] = value & 255;
+}
+
+function makePngChunk(type, payload) {
+  const typeBytes = new TextEncoder().encode(type);
+  const out = new Uint8Array(12 + payload.length);
+  writeUint32BE(out, 0, payload.length);
+  out.set(typeBytes, 4);
+  out.set(payload, 8);
+  const crcInput = new Uint8Array(typeBytes.length + payload.length);
+  crcInput.set(typeBytes);
+  crcInput.set(payload, typeBytes.length);
+  writeUint32BE(out, 8 + payload.length, crc32Bytes(crcInput));
+  return out;
+}
+
+function bytesToBase64(bytes) {
+  let binary = '';
+  const chunk = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+  }
+  return btoa(binary);
+}
+
+function base64ToBytes(text) {
+  const binary = atob(text);
+  const out = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) out[i] = binary.charCodeAt(i);
+  return out;
+}
+
+function addPlaneSightMetadataToPng(arrayBuffer, message) {
+  const png = new Uint8Array(arrayBuffer);
+  const signature = [137,80,78,71,13,10,26,10];
+  if (png.length < 12 || !signature.every((v, i) => png[i] === v)) {
+    throw new Error('Metadata embedding requires PNG output.');
+  }
+
+  const encodedMessage = bytesToBase64(new TextEncoder().encode(message));
+  const payloadText = META_KEYWORD + '\0' + 'base64:' + encodedMessage;
+  const payload = new TextEncoder().encode(payloadText);
+  const chunk = makePngChunk('tEXt', payload);
+
+  let pos = 8;
+  while (pos + 8 <= png.length) {
+    const len = ((png[pos] << 24) | (png[pos+1] << 16) | (png[pos+2] << 8) | png[pos+3]) >>> 0;
+    const type = String.fromCharCode(png[pos+4], png[pos+5], png[pos+6], png[pos+7]);
+    if (type === 'IEND') break;
+    pos += 12 + len;
+  }
+  if (pos + 12 > png.length) throw new Error('Could not find PNG IEND chunk for metadata insertion.');
+
+  const out = new Uint8Array(png.length + chunk.length);
+  out.set(png.slice(0, pos), 0);
+  out.set(chunk, pos);
+  out.set(png.slice(pos), pos + chunk.length);
+  return out.buffer;
+}
+
+function extractPlaneSightMetadataFromPng(arrayBuffer) {
+  if (!arrayBuffer) throw new Error('No original PNG bytes available for metadata decoding.');
+  const png = new Uint8Array(arrayBuffer);
+  const signature = [137,80,78,71,13,10,26,10];
+  if (png.length < 12 || !signature.every((v, i) => png[i] === v)) {
+    throw new Error('Metadata decoding requires the original PNG file.');
+  }
+
+  let pos = 8;
+  while (pos + 8 <= png.length) {
+    const len = ((png[pos] << 24) | (png[pos+1] << 16) | (png[pos+2] << 8) | png[pos+3]) >>> 0;
+    const type = String.fromCharCode(png[pos+4], png[pos+5], png[pos+6], png[pos+7]);
+    const dataStart = pos + 8;
+    const dataEnd = dataStart + len;
+    if (dataEnd + 4 > png.length) break;
+
+    if (type === 'tEXt') {
+      const payload = new TextDecoder().decode(png.slice(dataStart, dataEnd));
+      const nul = payload.indexOf('\0');
+      if (nul >= 0 && payload.slice(0, nul) === META_KEYWORD) {
+        const value = payload.slice(nul + 1);
+        if (value.startsWith('base64:')) return new TextDecoder().decode(base64ToBytes(value.slice(7)));
+        return value;
+      }
+    }
+    if (type === 'IEND') break;
+    pos = dataEnd + 4;
+  }
+  throw new Error('No PlaneSight metadata message found.');
+}
+
+function canvasToPngBlob(canvas) {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('Failed to create image blob.')), 'image/png');
+  });
+}
+
+async function blobToArrayBuffer(blob) {
+  return await blob.arrayBuffer();
+}
+
+async function pngBlobWithOptionalMetadata(canvas, message, includeMetadata) {
+  const blob = await canvasToPngBlob(canvas);
+  if (!includeMetadata) return blob;
+  const withMeta = addPlaneSightMetadataToPng(await blobToArrayBuffer(blob), message);
+  return new Blob([withMeta], { type: 'image/png' });
+}
+
+
+function decodeDataAuto(imageData) {
+  const attempts = [
+    ['Metadata', () => extractPlaneSightMetadataFromPng(decPngBytes)],
+    ['JPEG Resilient', () => decodeData(imageData)],
+    ['Scale Lab', () => decodeDataScale(imageData)],
+    ['Wavelet Lab', () => decodeDataWavelet(imageData)],
+    ['Watermark Lab', () => decodeDataWatermark(imageData)],
+    ['DCT Lab', () => decodeDataDCT(imageData)],
+    ['Resize Lab', () => decodeDataResize(imageData)],
+    ['PNG Stealth', () => decodeDataStealth(imageData)]
+  ];
+
+  const found = [];
+  const errors = [];
+  for (const [name, fn] of attempts) {
+    try {
+      const text = fn();
+      found.push({ name, text });
+    } catch(e) {
+      errors.push(name + ': ' + e.message);
+    }
+  }
+
+  if (!found.length) {
+    throw new Error('No hidden data found in Metadata, JPEG Resilient, Scale, Wavelet, Watermark, DCT, Resize, or PNG Stealth modes. Make sure the image was encoded with this version of PlaneSight and has not been cropped, filtered, or heavily recompressed.');
+  }
+
+  const text = found.map(x => `${x.name}: ${x.text}`).join('\n\n');
+
+  return {
+    text,
+    mode: 'Auto — all methods checked',
+    found,
+    methods: found.map(x => x.name),
+    errors
+  };
 }
 
 // ─── Self-test: encode then immediately decode in memory ──────────────────────
@@ -451,7 +2866,7 @@ function selfTest(imageData, text, strength) {
 }
 
 // ─── Full encode flow: read image for capacity + embed ─────────────────────
-let encImg = null, decImg = null;
+let encImg = null, decImg = null, decPngBytes = null;
 
 function loadEncImage(input) {
   const file = input.files[0]; if (!file) return;
@@ -469,9 +2884,9 @@ function loadEncImage(input) {
       document.getElementById('enc-placeholder').style.display = 'none';
       canvas.style.display = 'block';
       document.getElementById('enc-btn').disabled = false;
-      document.getElementById('test-btn').disabled = false;
-      document.getElementById('jpeg-btn').disabled = false;
+      const checkedTestBtn = document.getElementById('checked-test-btn'); if (checkedTestBtn) checkedTestBtn.disabled = false;
       updateCapacity();
+      updateModeHelp();
     };
     img.src = e.target.result;
   };
@@ -480,6 +2895,8 @@ function loadEncImage(input) {
 
 function loadDecImage(input) {
   const file = input.files[0]; if (!file) return;
+  decPngBytes = null;
+  file.arrayBuffer().then(buf => { decPngBytes = buf; }).catch(() => { decPngBytes = null; });
   const reader = new FileReader();
   reader.onload = e => {
     const img = new Image();
@@ -498,17 +2915,137 @@ function loadDecImage(input) {
   reader.readAsDataURL(file);
 }
 
+
+const METHOD_REGISTRY = {
+  metadata: {
+    label: 'Metadata',
+    encode: null,
+    decode: () => extractPlaneSightMetadataFromPng(decPngBytes),
+    note: 'PNG metadata text chunk'
+  },
+  resize: {
+    label: 'Resize Lab',
+    encode: (imageData, bytes) => encodeDataResize(imageData, bytes),
+    decode: imageData => decodeDataResize(imageData),
+    note: 'short normalized regional payload'
+  },
+  scale: {
+    label: 'Scale Lab',
+    encode: (imageData, bytes) => encodeDataScale(imageData, bytes),
+    decode: imageData => decodeDataScale(imageData),
+    note: 'short 1080p-downscale-resilient payload'
+  },
+  dct: {
+    label: 'DCT Lab',
+    encode: (imageData, bytes) => encodeDataDCT(imageData, bytes),
+    decode: imageData => decodeDataDCT(imageData),
+    note: 'experimental 8×8 frequency payload'
+  },
+  robust: {
+    label: 'JPEG Resilient',
+    encode: (imageData, bytes, strength) => encodeData(imageData, bytes, strength),
+    decode: imageData => decodeData(imageData),
+    note: 'luminance-grid payload'
+  },
+  wavelet: {
+    label: 'Wavelet Lab',
+    encode: (imageData, bytes) => encodeDataWavelet(imageData, bytes),
+    decode: imageData => decodeDataWavelet(imageData),
+    note: 'Haar wavelet HH-band payload'
+  },
+  watermark: {
+    label: 'Watermark Lab',
+    encode: (imageData, bytes) => encodeDataWatermark(imageData, bytes),
+    decode: imageData => decodeDataWatermark(imageData),
+    note: 'subtle blue-channel parity payload'
+  },
+  stealth: {
+    label: 'PNG Stealth',
+    encode: (imageData, bytes) => encodeDataStealth(imageData, bytes),
+    decode: imageData => decodeDataStealth(imageData),
+    note: 'subtle PNG-only LSB payload'
+  }
+};
+
+const METHOD_ORDER = ['resize', 'scale', 'dct', 'robust', 'wavelet', 'watermark', 'stealth', 'metadata'];
+
+function getCheckedMethods() {
+  const boxes = [...document.querySelectorAll('#encoding-methods input[type=checkbox]:checked')].map(x => x.value);
+  return METHOD_ORDER.filter(id => boxes.includes(id));
+}
+
+function getImageMethods(methods) {
+  return methods.filter(id => id !== 'metadata');
+}
+
+function cloneImageData(imageData) {
+  return new ImageData(new Uint8ClampedArray(imageData.data), imageData.width, imageData.height);
+}
+
+function applyCheckedMethods(baseImageData, msgBytes, strength, methods) {
+  let working = cloneImageData(baseImageData);
+  const applied = [];
+
+  for (const id of getImageMethods(methods)) {
+    const method = METHOD_REGISTRY[id];
+    const nextData = method.encode(working, msgBytes, strength);
+    working = new ImageData(nextData, baseImageData.width, baseImageData.height);
+    applied.push(id);
+  }
+
+  // Guardrail against layer interference: every selected method must still decode
+  // from the final image before the file is allowed to download.
+  const decoded = [];
+  for (const id of getImageMethods(methods)) {
+    const method = METHOD_REGISTRY[id];
+    let text;
+    try {
+      text = method.decode(working);
+    } catch(e) {
+      throw new Error(`${method.label} was damaged by the checked method combination: ${e.message}`);
+    }
+    const expected = new TextDecoder().decode(msgBytes);
+    if (text !== expected) {
+      throw new Error(`${method.label} decoded different text after layering. Uncheck one method or use a shorter message.`);
+    }
+    decoded.push(method.label);
+  }
+
+  return { imageData: working, applied, decoded };
+}
+
+function checkedMethodLabels(methods) {
+  return methods.map(id => METHOD_REGISTRY[id].label).join(', ');
+}
+
 function updateCapacity() {
   if (!encImg) return;
-  const totalPx = encImg.width * encImg.height;
-  const maxBits = Math.floor(totalPx / SPREAD);
-  const maxBytes = Math.floor(maxBits / 8) - MAGIC.length - 2 - RS_ECC;
+  const methods = getCheckedMethods();
   const text = document.getElementById('enc-text').value;
   const msgBytes = new TextEncoder().encode(text).length;
-  const pct = Math.min(100, (msgBytes / maxBytes) * 100);
+
+  const limits = [];
+  const totalPx = encImg.width * encImg.height;
+  if (methods.includes('robust')) {
+    const maxBits = Math.floor(totalPx / SPREAD);
+    limits.push(Math.floor(maxBits / 8) - MAGIC.length - 2 - RS_ECC);
+  }
+  if (methods.includes('stealth')) limits.push(Math.floor(totalPx / (STEALTH_SPREAD * 8)) - 5 - STEALTH_ECC);
+  if (methods.includes('dct')) {
+    const blocks = Math.floor(encImg.width / 8) * Math.floor(encImg.height / 8);
+    limits.push(Math.floor(blocks / (DCT_SPREAD * 8)) - 5 - DCT_ECC);
+  }
+  if (methods.includes('resize')) limits.push(RESIZE_MAX_BYTES_V4);
+  if (methods.includes('watermark')) limits.push(WM3_MAX_BYTES);
+  if (methods.includes('wavelet')) limits.push(WV_MAX_BYTES);
+  if (methods.includes('scale')) limits.push(SCALE_MAX_BYTES);
+
+  const maxBytes = Math.max(0, Math.min(...(limits.length ? limits : (methods.includes('metadata') ? [200000] : [0]))));
+  const pct = maxBytes ? Math.min(100, (msgBytes / maxBytes) * 100) : 0;
   document.getElementById('cap-fill').style.width = pct + '%';
-  document.getElementById('cap-label').textContent =
-    `${msgBytes} / ${maxBytes} bytes used (${Math.round(pct)}%) — image: ${encImg.width}×${encImg.height}`;
+  document.getElementById('cap-label').textContent = methods.length
+    ? `${msgBytes} / ${maxBytes} bytes used (${Math.round(pct)}%) — checked: ${checkedMethodLabels(methods)} — image: ${encImg.width}×${encImg.height}`
+    : `Select at least one method — image: ${encImg.width}×${encImg.height}`;
   document.getElementById('cap-fill').style.background = pct > 90 ? '#f87171' : pct > 70 ? '#fbbf24' : '#a78bfa';
 }
 
@@ -522,6 +3059,10 @@ async function encode() {
   if (!encImg) return;
   const text = document.getElementById('enc-text').value.trim();
   if (!text) { setStatus('enc-status', 'err', 'Please enter a message to encode.'); return; }
+
+  const methods = getCheckedMethods();
+  if (!methods.length) { setStatus('enc-status', 'err', 'Select at least one encoding method.'); return; }
+
   const strength = parseInt(document.getElementById('strength').value);
   const spinner = document.getElementById('enc-spinner');
   const btn = document.getElementById('enc-btn');
@@ -530,29 +3071,27 @@ async function encode() {
   await new Promise(r => setTimeout(r, 10));
   try {
     const msgBytes = new TextEncoder().encode(text);
-    const modifiedData = encodeData(encImg, msgBytes, strength);
+    const result = applyCheckedMethods(encImg, msgBytes, strength, methods);
 
-    // Draw to canvas and download
     const canvas = document.getElementById('enc-canvas');
     const ctx = canvas.getContext('2d');
-    const newImageData = new ImageData(modifiedData, encImg.width, encImg.height);
-    ctx.putImageData(newImageData, 0, 0);
+    ctx.putImageData(result.imageData, 0, 0);
 
-    await new Promise((resolve, reject) => {
-      canvas.toBlob(blob => {
-        if (!blob) { reject(new Error('Failed to create image blob.')); return; }
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.download = 'steg_encoded.png';
-        link.href = url;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        setTimeout(() => URL.revokeObjectURL(url), 1000);
-        resolve();
-      }, 'image/png');
-    });
-    setStatus('enc-status', 'ok', `✓ Encoded ${msgBytes.length} bytes — RS(${RS_ECC}) error correction, ${SPREAD}× spread, luminance-domain embedding. Survives JPEG quality ≥ 60. Downloaded as PNG.`);
+    const blob = await pngBlobWithOptionalMetadata(canvas, text, methods.includes('metadata'));
+    if (methods.includes('metadata')) {
+      const metaCheck = extractPlaneSightMetadataFromPng(await blob.arrayBuffer());
+      if (metaCheck !== text) throw new Error('Metadata layer failed verification.');
+    }
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.download = `PlaneSight_${methods.join('_')}_encoded.png`;
+    link.href = url;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+    setStatus('enc-status', 'ok', `✓ Encoded ${msgBytes.length} bytes using ${checkedMethodLabels(methods)}. Each checked method was decoded from the final layered image before download, so the layers did not destroy each other in this PNG.`);
   } catch(e) {
     setStatus('enc-status', 'err', '✗ ' + e.message);
   }
@@ -563,20 +3102,42 @@ async function decode() {
   if (!decImg) return;
   const spinner = document.getElementById('dec-spinner');
   const btn = document.getElementById('dec-btn');
+  const selectedMode = document.getElementById('decode-mode')?.value || 'auto';
   btn.disabled = true; spinner.style.display = 'inline-block';
   document.getElementById('dec-output').style.display = 'none';
   document.getElementById('copy-btn').style.display = 'none';
 
   await new Promise(r => setTimeout(r, 10));
   try {
-    const text = decodeData(decImg);
-    setStatus('dec-status', 'ok', `✓ Message successfully decoded and error-corrected.`);
-    document.getElementById('dec-meta').textContent = `${new TextEncoder().encode(text).length} bytes decoded`;
+    let result;
+    if (selectedMode === 'robust') result = { text: decodeData(decImg), mode: 'JPEG Resilient' };
+    else if (selectedMode === 'resize') result = { text: decodeDataResize(decImg), mode: 'Resize Lab' };
+    else if (selectedMode === 'watermark') result = { text: decodeDataWatermark(decImg), mode: 'Watermark Lab' };
+    else if (selectedMode === 'wavelet') result = { text: decodeDataWavelet(decImg), mode: 'Wavelet Lab' };
+    else if (selectedMode === 'scale') result = { text: decodeDataScale(decImg), mode: 'Scale Lab' };
+    else if (selectedMode === 'stealth') result = { text: decodeDataStealth(decImg), mode: 'PNG Stealth' };
+    else if (selectedMode === 'dct') result = { text: decodeDataDCT(decImg), mode: 'DCT Lab' };
+    else if (selectedMode === 'metadata') result = { text: extractPlaneSightMetadataFromPng(decPngBytes), mode: 'Metadata' };
+    else result = decodeDataAuto(decImg);
+
+    let text = result.text;
+    const methodList = result.methods || [result.mode];
+
+    if (selectedMode === 'auto' && result.found) {
+      const lines = result.found.map(item => `✓ ${item.name} found:\n${item.text}`);
+      text = lines.join('\n\n');
+      setStatus('dec-status', 'ok', `✓ Auto checked all methods. ${result.found.length} method${result.found.length === 1 ? '' : 's'} recovered data.`);
+      document.getElementById('dec-meta').textContent = result.found.map(item => `${item.name}: ${new TextEncoder().encode(item.text).length} bytes`).join(' — ');
+    } else {
+      setStatus('dec-status', 'ok', `✓ Message successfully decoded and error-corrected using ${result.mode}.`);
+      document.getElementById('dec-meta').textContent = `${new TextEncoder().encode(text).length} bytes decoded — found in ${methodList.join(', ')}`;
+    }
     document.getElementById('dec-output').textContent = text;
     document.getElementById('dec-output').style.display = 'block';
     document.getElementById('copy-btn').style.display = 'inline';
   } catch(e) {
-    setStatus('dec-status', 'err', '✗ ' + e.message);
+    const modeLabel = selectedMode === 'auto' ? 'Auto-detect' : selectedMode;
+    setStatus('dec-status', 'err', `✗ ${modeLabel}: ${e.message}`);
     document.getElementById('dec-meta').textContent = '';
   }
   btn.disabled = false; spinner.style.display = 'none';
@@ -675,6 +3236,102 @@ async function runJpegTest() {
     });
   } catch(e) {
     log.push(`✗ ERROR: ${e.message}`);
+  }
+  dbg.textContent = log.join('\n');
+}
+
+
+async function runStealthSelfTest() {
+  if (!encImg) return;
+  const text = document.getElementById('enc-text').value.trim() || 'Hello PlaneSight stealth test!';
+  const dbg = document.getElementById('debug-out');
+  dbg.style.display = 'block';
+  dbg.textContent = 'Running Stealth Mode self-test...';
+  await new Promise(r => setTimeout(r, 10));
+
+  const log = [];
+  try {
+    const msgBytes = new TextEncoder().encode(text);
+    log.push(`Message: "${text}" (${msgBytes.length} bytes)`);
+
+    const encoded = encodeDataStealth(encImg, msgBytes);
+    log.push('Stealth encode OK');
+
+    const testImg = new ImageData(encoded, encImg.width, encImg.height);
+    const decoded = decodeDataStealth(testImg);
+    log.push(`Stealth decode OK: "${decoded}"`);
+    log.push(decoded === text ? '✓ STEALTH ROUND-TRIP PASSED' : `✗ MISMATCH: got "${decoded}"`);
+  } catch(e) {
+    log.push(`✗ ERROR: ${e.message}`);
+  }
+  dbg.textContent = log.join('\n');
+}
+
+
+
+function updateModeHelp() {
+  const methods = getCheckedMethods();
+  if (!encImg) return;
+  if (!methods.length) {
+    setStatus('enc-status', 'err', 'Select at least one encoding method.');
+    return;
+  }
+
+  const labels = checkedMethodLabels(methods);
+  const warnings = [];
+  if (methods.includes('stealth') || methods.includes('watermark')) warnings.push('PNG-only methods should be decoded from the exact downloaded PNG before JPEG/resizing tests.');
+  if (methods.includes('resize') || methods.includes('scale')) warnings.push('Resize/Scale methods require short messages and can be more visible.');
+  if (methods.includes('dct') || methods.includes('wavelet')) warnings.push('DCT/Wavelet are experimental and may fail on some images.');
+  if (methods.length > 1) warnings.push('Layering is verified before download; if any checked method is damaged, encoding will stop with an error.');
+
+  setStatus('enc-status', 'info', `Checked: ${labels}. ${warnings.join(' ')}`);
+}
+
+async function runCheckedMethodsTest() {
+  if (!encImg) return;
+  const text = document.getElementById('enc-text').value.trim() || 'PlaneSight checked methods test';
+  const methods = getCheckedMethods();
+  const strength = parseInt(document.getElementById('strength').value);
+  const dbg = document.getElementById('debug-out');
+  dbg.style.display = 'block';
+
+  if (!methods.length) {
+    dbg.textContent = 'Select at least one method first.';
+    return;
+  }
+
+  dbg.textContent = 'Testing checked methods...';
+  await new Promise(r => setTimeout(r, 10));
+
+  const log = [];
+  try {
+    const msgBytes = new TextEncoder().encode(text);
+    log.push(`Message: "${text}" (${msgBytes.length} bytes)`);
+    log.push(`Checked methods: ${checkedMethodLabels(methods)}`);
+    log.push(`Layer order: ${methods.map(id => METHOD_REGISTRY[id].label).join(' → ')}`);
+
+    const result = applyCheckedMethods(encImg, msgBytes, strength, methods);
+    log.push('Encode OK');
+
+    for (const id of getImageMethods(methods)) {
+      const method = METHOD_REGISTRY[id];
+      const decoded = method.decode(result.imageData);
+      log.push(`${method.label} decode OK: "${decoded}"`);
+    }
+
+    if (methods.includes('metadata')) {
+      const c = document.createElement('canvas');
+      c.width = encImg.width; c.height = encImg.height;
+      c.getContext('2d').putImageData(result.imageData, 0, 0);
+      const blob = await pngBlobWithOptionalMetadata(c, text, true);
+      const decodedMeta = extractPlaneSightMetadataFromPng(await blob.arrayBuffer());
+      log.push(`Metadata decode OK: "${decodedMeta}"`);
+    }
+
+    log.push('✓ ALL CHECKED METHODS PASSED WITHOUT INTERFERENCE');
+  } catch(e) {
+    log.push(`✗ ERROR: ${e.message}`);
+    log.push('Try unchecking one method, using a shorter message, or lowering the number of robust/frequency-domain layers.');
   }
   dbg.textContent = log.join('\n');
 }

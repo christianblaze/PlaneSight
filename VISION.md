@@ -1,91 +1,132 @@
 # PlaneSight Vision
 
-## Introduction
+## The Question
 
 PlaneSight began with a simple question:
 
-**Can value be embedded directly into digital media?**
+> Can Bitcoin be hidden inside an image?
 
-The original inspiration for this project came from thinking about Bitcoin private keys and steganography. If a Bitcoin wallet's private key could be encoded into an image, then the image itself could become a carrier of value. A person could create a wallet, fund it with bitcoin, encode the private key into an image, and distribute or store that image as both media and a bearer instrument.
+The original idea was to create a Bitcoin wallet, fund it with bitcoin, and embed the wallet's private key into an image using steganographic techniques.
 
-PlaneSight was created as an early proof-of-concept to explore this idea.
+Whoever possessed the image and successfully recovered the key would gain access to the bitcoin associated with that media.
 
----
-
-## Media as a Carrier of Value
-
-Today, digital media is infinitely reproducible. A copy of a file is generally considered equivalent to the original.
-
-PlaneSight explores the possibility of changing that dynamic.
-
-If an image or video contains recoverable access to a Bitcoin wallet or other valuable digital asset, the media itself acquires economic significance beyond its visual or informational content.
-
-In this model, digital media becomes more than a file—it becomes a container for value.
+While initially conceived as a proof-of-concept, this idea led to a broader vision exploring the relationship between digital media and digital value.
 
 ---
 
-## Toward Digital Scarcity
+# Digital Media With Embedded Value
 
-One long-term vision for PlaneSight is to investigate whether embedded value can create economic incentives that encourage preservation rather than duplication.
+Today, digital files can be copied infinitely at almost zero cost.
 
-Imagine a system where a media server distributes images or videos that contain embedded Bitcoin keys. The files themselves would possess measurable value because they contain access to bitcoin held within associated wallets.
+A photograph, image, song, video, or document can be duplicated endlessly, making digital scarcity difficult to achieve.
 
-In such a system, owners would have a natural incentive to safeguard their copies, maintain backups, and protect the integrity of the media.
+PlaneSight explores the possibility of associating cryptographic value directly with digital media.
 
-Rather than viewing digital files as infinitely disposable, the files become assets whose preservation carries economic importance.
+Rather than merely representing ownership through external databases or tokens, the media itself could contain encrypted secrets, keys, or value-bearing information.
 
-This concept introduces a form of digital scarcity that emerges not from artificial restrictions, but from the value embedded within the media itself.
-
----
-
-## Future Image Encoding
-
-The current PlaneSight proof-of-concept focuses on robustness and simplicity rather than invisibility.
-
-Future research may explore:
-
-- Perceptually optimized embedding
-- Color-aware encoding techniques
-- Adaptive image analysis
-- Multi-layer payload distribution
-- Improved resistance to compression and transformation
-- Encryption and key management systems
-
-The goal is to make embedded information increasingly difficult to detect while maintaining reliable recovery.
+In such a world, preserving the original media becomes economically meaningful.
 
 ---
 
-## Video Steganography
+# Multi-Layer Media Storage
 
-Images are only the beginning.
+Future versions of PlaneSight may explore storing the same encrypted payload across multiple layers of media:
 
-Future versions of PlaneSight may investigate embedding information across video frames, enabling significantly larger payloads and more sophisticated encoding strategies.
+- Image pixels
+- Frequency-domain coefficients
+- Metadata
+- Audio tracks
+- Video frames
+- Container structures
+- Future media formats
 
-Video-based steganography could distribute data across thousands of frames, making the hidden information more resilient while reducing the visibility of any individual modification.
-
-This may open the door to value-bearing video assets, encrypted archives, and new forms of digital ownership.
-
----
-
-## Research Project
-
-PlaneSight is currently an experimental research project and proof-of-concept.
-
-It should not be considered secure for storing Bitcoin private keys or other sensitive information without extensive additional development, cryptographic review, and security testing.
-
-The purpose of the project is to explore the intersection of:
-
-- Steganography
-- Digital media
-- Information theory
-- Cryptography
-- Bitcoin
-- Digital ownership
-
-and to investigate whether digital media can evolve from being merely information to becoming a direct carrier of value.
+By redundantly encoding the same information across multiple locations, media may become more resilient to damage, modification, or partial loss.
 
 ---
 
-## Author
+# Bitcoin-Backed Media
 
-Proof-of-concept created by Christian Blaze.
+One area of research involves embedding Bitcoin-related information inside media.
+
+For example:
+
+1. A Bitcoin wallet is created.
+2. The wallet is funded.
+3. The private key is encrypted.
+4. The encrypted key is embedded into media.
+5. Possession of the media implies potential access to the embedded value.
+
+This concept should not be considered secure Bitcoin storage today.
+
+Rather, it serves as a research framework for exploring new relationships between information, value, and media ownership.
+
+---
+
+# Media Rights Management Through Multisignature Systems
+
+PlaneSight also explores the possibility of using multisignature Bitcoin wallets as a new form of media rights management.
+
+In one possible model:
+
+- One signing key is embedded within the media.
+- Another signing key is controlled by the distributor or issuing organization.
+
+Possession of the media alone would not immediately unlock the associated value.
+
+Instead, the distributor could participate in signing transactions under predefined conditions.
+
+Examples might include:
+
+- Time-based release schedules
+- Long-term holding incentives
+- Collector rewards
+- Ownership verification
+- Access control systems
+
+For example:
+
+A distributor may agree to release the full Bitcoin value associated with a piece of media only after it has been held for five years.
+
+If redemption occurs earlier, only a portion of the value may be released.
+
+Such arrangements could create incentives to preserve digital media rather than casually duplicate or redistribute it.
+
+---
+
+# Audio and Video
+
+While current PlaneSight research focuses primarily on images, future development may explore:
+
+- Audio steganography
+- Video steganography
+- Cross-media redundancy
+- Multi-format recovery systems
+
+A single encrypted payload could potentially be embedded simultaneously across:
+
+- Images
+- Audio
+- Video
+- Metadata
+
+creating multiple independent recovery paths.
+
+---
+
+# Research Philosophy
+
+PlaneSight is not merely a steganography project.
+
+It is an exploration of how information, value, ownership, and media may interact in a future where digital assets can carry cryptographic value directly within the media itself.
+
+The project seeks to investigate whether media can become more than content — whether it can become a bearer instrument for information, ownership, and value.
+
+---
+
+# Disclaimer
+
+PlaneSight is an experimental research project.
+
+Nothing described in this document should be considered secure, production-ready, or suitable for storing meaningful amounts of Bitcoin or sensitive information.
+
+The concepts described here are intended to inspire experimentation, discussion, and future research.
